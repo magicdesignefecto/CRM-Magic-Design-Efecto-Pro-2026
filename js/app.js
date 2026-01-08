@@ -2,9 +2,8 @@ import { Store } from './core/store.js';
 import { AuthService } from './services/auth.service.js';
 import { Router } from './core/router.js';
 import { Layout } from './components/Layout.js';
-import { PubSub } from './core/pubsub.js'; // Asegúrate de importar esto arriba si lo usas abajo
 
-// Importar Módulos
+// Módulos
 import { LoginModule } from './modules/login.js';
 import { Dashboard } from './modules/dashboard.js';
 import { LeadsModule } from './modules/leads.js';
@@ -17,7 +16,9 @@ import { ReportsModule } from './modules/reports.js';
 import { GoalsModule } from './modules/goals.js';
 import { SettingsModule } from './modules/settings.js';
 
-// Mapa de Rutas
+// --- CONFIGURACIÓN CRÍTICA ---
+const REPO_NAME = '/CRM-Magic-Design-Efecto-Pro-2026'; // Nombre EXACTO
+
 const routes = {
     '/': Dashboard,
     '/dashboard': Dashboard,
@@ -32,74 +33,92 @@ const routes = {
     '/settings': SettingsModule
 };
 
-// Función principal que controla la App
+// --- EL CEREBRO DE LA APP (CON ESPÍA) ---
 const router = async () => {
-    // --- INICIO CÓDIGO NUEVO ---
-    // Iniciamos el escuchador de Firebase una sola vez
+    // 1. ESPÍA: Diagnóstico inicial
+    console.log("--- NAVEGACIÓN DETECTADA ---");
+    console.log("URL Completa:", window.location.href);
+    console.log("Pathname Bruto:", window.location.pathname);
+
+    // 2. Auth Listener (Solo una vez)
     if (!window.authInitialized) {
         AuthService.initAuthListener();
         window.authInitialized = true;
     }
-    // --- FIN CÓDIGO NUEVO ---
 
     const contentDiv = document.getElementById('app');
-    
-    // 1. Intentar recuperar sesión guardada
     Store.init();
     const user = Store.getState().user;
 
-    // 2. PROTECCIÓN: Si NO hay usuario, forzar Login
+    // 3. LIMPIEZA DE RUTA (El corazón del arreglo)
+    // Quitamos el nombre del repo de la ruta para saber qué módulo cargar
+    let path = window.location.pathname;
+    
+    if (path.includes(REPO_NAME)) {
+        path = path.replace(REPO_NAME, '');
+    }
+    // Quitamos slash final si existe (ej: /dashboard/ -> /dashboard)
+    if (path.length > 1 && path.endsWith('/')) {
+        path = path.slice(0, -1);
+    }
+    // Si está vacío, es el home
+    if (path === '') path = '/';
+
+    console.log("Ruta Limpia (Interna):", path); // <--- ESTO ES LO QUE IMPORTA
+
+    // 4. PROTECCIÓN DE SESIÓN
     if (!user) {
-        // Limpiamos la URL visualmente a '/' sin recargar
-        if (window.location.pathname !== '/') {
-            window.history.replaceState({}, '', '/');
+        console.log("Estado: Usuario NO logueado");
+        if (path !== '/' && path !== '/index.html') {
+            console.log("Redirigiendo al Login...");
+            // Usamos replaceState para no dejar historial
+            window.history.replaceState({}, '', REPO_NAME + '/');
+            path = '/';
         }
         
-        // Renderizamos el Login directamente (sin Layout de menú lateral)
         contentDiv.innerHTML = await LoginModule.render();
         if (LoginModule.init) await LoginModule.init();
-        return; // Detenemos la ejecución aquí
+        return;
     }
 
-    // 3. Si HAY usuario, buscamos la ruta solicitada
-    // --- FIX GITHUB: Limpiamos la ruta para que funcione en la carpeta del proyecto ---
-    let path = window.location.pathname.replace('/magic-crm-pro-2026', '');
-    if (path === '') path = '/';
-    
+    // 5. CARGA DE MÓDULO
+    console.log("Estado: Usuario Logueado -> Cargando módulo para:", path);
     const module = routes[path] || Dashboard;
 
-    // 4. Renderizar el Módulo
-    contentDiv.innerHTML = await module.render();
-    
-    // Inicializamos la lógica del módulo
-    if (module.init) {
-        await module.init();
+    if (!routes[path]) {
+        console.warn("¡ALERTA! Ruta no definida en el mapa:", path, "-> Cargando Dashboard por defecto");
+    }
+
+    // Renderizamos
+    try {
+        contentDiv.innerHTML = await module.render();
+        if (module.init) await module.init();
+    } catch (error) {
+        console.error("ERROR CRÍTICO RENDERIZANDO MÓDULO:", error);
+        contentDiv.innerHTML = "<h2>Error cargando la sección. Revisa la consola (F12).</h2>";
     }
 };
 
-// Escuchar navegación
+// Escuchar navegación del navegador (atrás/adelante)
 window.addEventListener('popstate', router);
 window.addEventListener('DOMContentLoaded', router);
 
-// Exponer navegación global para los enlaces del menú
+// --- INTERCEPTOR DE CLICS (Para navegar sin recargar) ---
 document.body.addEventListener('click', e => {
-    // 1. Detectar si el clic fue en un enlace o dentro de uno (icono)
-    // Esto YA CUBRE los iconos SVG gracias a .closest()
     const link = e.target.matches('[data-link]') ? e.target : e.target.closest('[data-link]');
 
     if (link) {
-        e.preventDefault(); // Evitamos que recargue la página
+        e.preventDefault();
         
-        // 2. CORRECCIÓN: Usamos getAttribute para obtener SOLO la ruta interna (ej: '/leads')
-        // y NO la URL completa con https://... (que es lo que rompe GitHub Pages)
-        const href = link.getAttribute('href'); 
-        
-        Router.navigateTo(href);
-        router(); // Forzamos la actualización de la vista
-    }
-});
+        // Obtenemos el atributo href limpio (ej: "/leads")
+        const targetRoute = link.getAttribute('href'); 
+        console.log("Clic detectado hacia:", targetRoute);
 
-// Escuchar evento de Login/Logout para recargar la vista
-PubSub.subscribe('AUTH_CHANGED', () => {
-    router();
+        // Construimos la URL completa para el navegador
+        // IMPORTANTE: Aquí agregamos el nombre del repo manualmente para que la URL se vea bien
+        const fullUrl = REPO_NAME + targetRoute;
+        
+        window.history.pushState({}, "", fullUrl);
+        router(); // Ejecutamos la lógica
+    }
 });
