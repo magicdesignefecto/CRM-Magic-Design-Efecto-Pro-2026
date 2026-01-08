@@ -2,9 +2,10 @@ import { Store } from './core/store.js';
 import { AuthService } from './services/auth.service.js';
 import { Router } from './core/router.js';
 import { Layout } from './components/Layout.js';
+import { PubSub } from './core/pubsub.js'; // Asegúrate de importar esto arriba si lo usas abajo
 
 // Importar Módulos
-import { LoginModule } from './modules/login.js'; // <--- IMPORTANTE
+import { LoginModule } from './modules/login.js';
 import { Dashboard } from './modules/dashboard.js';
 import { LeadsModule } from './modules/leads.js';
 import { ClientsModule } from './modules/clients.js';
@@ -56,7 +57,7 @@ const router = async () => {
         
         // Renderizamos el Login directamente (sin Layout de menú lateral)
         contentDiv.innerHTML = await LoginModule.render();
-        await LoginModule.init();
+        if (LoginModule.init) await LoginModule.init();
         return; // Detenemos la ejecución aquí
     }
 
@@ -67,14 +68,10 @@ const router = async () => {
     
     const module = routes[path] || Dashboard;
 
-    // 4. Renderizar el Módulo dentro del Layout (con menú lateral)
-    // Nota: Los módulos ahora devuelven el HTML completo ya procesado por Layout.render
-    // O si el módulo usa Layout internamente, lo llamamos.
-    
-    // Ejecutamos el render del módulo
+    // 4. Renderizar el Módulo
     contentDiv.innerHTML = await module.render();
     
-    // Inicializamos la lógica del módulo (listeners, gráficas, etc.)
+    // Inicializamos la lógica del módulo
     if (module.init) {
         await module.init();
     }
@@ -86,21 +83,23 @@ window.addEventListener('DOMContentLoaded', router);
 
 // Exponer navegación global para los enlaces del menú
 document.body.addEventListener('click', e => {
-    if (e.target.matches('[data-link]')) {
-        e.preventDefault();
-        Router.navigateTo(e.target.href);
-        router(); // Forzar actualización manual
-    }
-    // Soporte para clics dentro de iconos SVG en los enlaces
-    else if (e.target.closest('[data-link]')) {
-        e.preventDefault();
-        Router.navigateTo(e.target.closest('[data-link]').href);
-        router();
+    // 1. Detectar si el clic fue en un enlace o dentro de uno (icono)
+    // Esto YA CUBRE los iconos SVG gracias a .closest()
+    const link = e.target.matches('[data-link]') ? e.target : e.target.closest('[data-link]');
+
+    if (link) {
+        e.preventDefault(); // Evitamos que recargue la página
+        
+        // 2. CORRECCIÓN: Usamos getAttribute para obtener SOLO la ruta interna (ej: '/leads')
+        // y NO la URL completa con https://... (que es lo que rompe GitHub Pages)
+        const href = link.getAttribute('href'); 
+        
+        Router.navigateTo(href);
+        router(); // Forzamos la actualización de la vista
     }
 });
 
 // Escuchar evento de Login/Logout para recargar la vista
-import { PubSub } from './core/pubsub.js';
 PubSub.subscribe('AUTH_CHANGED', () => {
     router();
 });
