@@ -62,9 +62,8 @@ const router = async () => {
     }
 
     // 3. Si HAY usuario, buscamos la ruta solicitada
-    // --- FIX GITHUB: Usamos el nombre REAL del repositorio (Mayúsculas importan) ---
-    let path = window.location.pathname.replace('/CRM-Magic-Design-Efecto-Pro-2026', '');
-    
+    // --- FIX GITHUB: Limpiamos la ruta para que funcione en la carpeta del proyecto ---
+    let path = window.location.pathname.replace('/magic-crm-pro-2026', '');
     if (path === '') path = '/';
     
     const module = routes[path] || Dashboard;
@@ -104,4 +103,3 @@ document.body.addEventListener('click', e => {
 PubSub.subscribe('AUTH_CHANGED', () => {
     router();
 });
-
