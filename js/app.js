@@ -2,6 +2,7 @@ import { Store } from './core/store.js';
 import { AuthService } from './services/auth.service.js';
 import { Router } from './core/router.js';
 import { Layout } from './components/Layout.js';
+import { Config } from './core/config.js'; // <--- IMPORTAMOS EL CEREBRO
 
 // Módulos
 import { LoginModule } from './modules/login.js';
@@ -15,9 +16,6 @@ import { CalendarModule } from './modules/calendar.js';
 import { ReportsModule } from './modules/reports.js';
 import { GoalsModule } from './modules/goals.js';
 import { SettingsModule } from './modules/settings.js';
-
-// --- CONFIGURACIÓN CRÍTICA ---
-const REPO_NAME = '/CRM-Magic-Design-Efecto-Pro-2026'; // Nombre EXACTO
 
 const routes = {
     '/': Dashboard,
@@ -33,92 +31,82 @@ const routes = {
     '/settings': SettingsModule
 };
 
-// --- EL CEREBRO DE LA APP (CON ESPÍA) ---
 const router = async () => {
-    // 1. ESPÍA: Diagnóstico inicial
-    console.log("--- NAVEGACIÓN DETECTADA ---");
-    console.log("URL Completa:", window.location.href);
-    console.log("Pathname Bruto:", window.location.pathname);
-
-    // 2. Auth Listener (Solo una vez)
+    // Inicializar Auth Listener una sola vez
     if (!window.authInitialized) {
         AuthService.initAuthListener();
         window.authInitialized = true;
     }
 
     const contentDiv = document.getElementById('app');
-    Store.init();
+    Store.init(); // Ahora protegido con try-catch
     const user = Store.getState().user;
+    
+    // Obtenemos la ruta base automáticamente (Local o GitHub)
+    const BASE_PATH = Config.getBasePath();
 
-    // 3. LIMPIEZA DE RUTA (El corazón del arreglo)
-    // Quitamos el nombre del repo de la ruta para saber qué módulo cargar
+    // --- LIMPIEZA DE RUTA INTELIGENTE ---
     let path = window.location.pathname;
     
-    if (path.includes(REPO_NAME)) {
-        path = path.replace(REPO_NAME, '');
+    // Si la ruta empieza con la base (ej: /CRM-Magic...), la quitamos para saber qué modulo cargar
+    if (BASE_PATH && path.startsWith(BASE_PATH)) {
+        path = path.replace(BASE_PATH, '');
     }
-    // Quitamos slash final si existe (ej: /dashboard/ -> /dashboard)
-    if (path.length > 1 && path.endsWith('/')) {
-        path = path.slice(0, -1);
-    }
-    // Si está vacío, es el home
+    
+    // Limpieza extra
+    if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
     if (path === '') path = '/';
 
-    console.log("Ruta Limpia (Interna):", path); // <--- ESTO ES LO QUE IMPORTA
+    console.log("Ruta detectada:", path);
 
-    // 4. PROTECCIÓN DE SESIÓN
+    // --- PROTECCIÓN DE SESIÓN ---
     if (!user) {
-        console.log("Estado: Usuario NO logueado");
+        // Si no hay usuario y no estamos en login, mandar a login
         if (path !== '/' && path !== '/index.html') {
-            console.log("Redirigiendo al Login...");
-            // Usamos replaceState para no dejar historial
-            window.history.replaceState({}, '', REPO_NAME + '/');
+            window.history.replaceState({}, '', BASE_PATH + '/');
             path = '/';
         }
-        
         contentDiv.innerHTML = await LoginModule.render();
         if (LoginModule.init) await LoginModule.init();
         return;
     }
 
-    // 5. CARGA DE MÓDULO
-    console.log("Estado: Usuario Logueado -> Cargando módulo para:", path);
+    // --- CARGA DE MÓDULO ---
     const module = routes[path] || Dashboard;
 
-    if (!routes[path]) {
-        console.warn("¡ALERTA! Ruta no definida en el mapa:", path, "-> Cargando Dashboard por defecto");
-    }
-
-    // Renderizamos
+    // Renderizamos Layout + Módulo
     try {
-        contentDiv.innerHTML = await module.render();
+        // Pasamos el contenido del módulo al Layout
+        // Nota: Layout.render ahora espera HTML string, no el módulo en sí
+        const moduleContent = await module.render();
+        const pageTitle = path.replace('/', '').toUpperCase() || 'DASHBOARD';
+        
+        contentDiv.innerHTML = Layout.render(moduleContent, pageTitle);
+        
+        // Inicializamos Layout (sidebar, logout) y luego el Módulo
+        if (Layout.init) await Layout.init();
         if (module.init) await module.init();
+
     } catch (error) {
-        console.error("ERROR CRÍTICO RENDERIZANDO MÓDULO:", error);
-        contentDiv.innerHTML = "<h2>Error cargando la sección. Revisa la consola (F12).</h2>";
+        console.error("Error renderizando:", error);
+        contentDiv.innerHTML = "<h2>Error cargando la aplicación.</h2>";
     }
 };
 
-// Escuchar navegación del navegador (atrás/adelante)
 window.addEventListener('popstate', router);
 window.addEventListener('DOMContentLoaded', router);
 
-// --- INTERCEPTOR DE CLICS (Para navegar sin recargar) ---
+// --- NAVEGACIÓN GLOBAL MEJORADA ---
 document.body.addEventListener('click', e => {
     const link = e.target.matches('[data-link]') ? e.target : e.target.closest('[data-link]');
-
     if (link) {
         e.preventDefault();
+        const route = link.getAttribute('href'); // Es la ruta interna (ej: /leads)
         
-        // Obtenemos el atributo href limpio (ej: "/leads")
-        const targetRoute = link.getAttribute('href'); 
-        console.log("Clic detectado hacia:", targetRoute);
-
-        // Construimos la URL completa para el navegador
-        // IMPORTANTE: Aquí agregamos el nombre del repo manualmente para que la URL se vea bien
-        const fullUrl = REPO_NAME + targetRoute;
+        // Construimos la URL real (Base + Ruta)
+        const fullUrl = Config.getBasePath() + route;
         
         window.history.pushState({}, "", fullUrl);
-        router(); // Ejecutamos la lógica
+        router();
     }
 });
