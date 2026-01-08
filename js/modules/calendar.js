@@ -1,4 +1,3 @@
-import { Layout } from '../components/Layout.js';
 import { Modal } from '../components/Modal.js';
 import { ProjectsService } from '../services/projects.service.js';
 import { Formatters } from '../utils/formatters.js';
@@ -143,7 +142,7 @@ export const CalendarModule = {
             
             ${Modal.render('Agenda del Día', '<div id="dayDetailsContent"></div>', 'modalCalendar')}
         `;
-        return Layout.render(pageContent, 'Calendario');
+        return pageContent;
     },
 
     init: async () => {
@@ -256,4 +255,5 @@ export const CalendarModule = {
     },
 
     destroy: () => { delete window.openDayDetail; }
+
 };
