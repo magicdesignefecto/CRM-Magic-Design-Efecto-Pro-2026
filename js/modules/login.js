@@ -82,7 +82,7 @@ export const LoginModule = {
                         <p>Este es un CRM privado. Contacta al administrador.</p>
                         <div style="text-align:left; background:#F1F5F9; padding:15px; border-radius:8px; margin-bottom:20px; font-size:0.9rem;">
                             <strong>Administrador:</strong> Diego Gonzales<br>
-                            <strong>Correo:</strong> admin@magicdesign.com
+                            <strong>Correo:</strong> admin@magicdesignefecto.com
                         </div>
                         <button type="button" class="btn-auth secondary" onclick="switchView('viewLogin')">Volver al Login</button>
                     </div>
@@ -172,3 +172,4 @@ export const LoginModule = {
 
     destroy: () => { delete window.switchView; }
 };
+
