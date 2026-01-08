@@ -1,14 +1,14 @@
 import { Store } from '../core/store.js';
 import { Router } from '../core/router.js';
-import { TasksService } from '../services/tasks.service.js'; 
-import { Formatters } from '../utils/formatters.js';
+// BORRADO: import { TasksService } ... (Esto bloqueaba la entrada porque el archivo no existe)
+// BORRADO: import { Formatters } ... (Esto también bloqueaba)
 
 export const Layout = {
     render: (content, title = 'CRM') => {
         // 1. Obtener usuario de forma segura
         const user = Store.getState().user || { name: 'Usuario', role: 'Invitado' };
         
-        // 2. Calcular iniciales (Evita el error de pantalla blanca)
+        // 2. Calcular iniciales
         const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'US';
 
         return `
