@@ -1,15 +1,26 @@
 import { PubSub } from './pubsub.js';
 
-// Estado inicial LIMPIO (Sin usuario "quemado")
-const initialState = {
-    user: null, // <--- Aquí estaba Diego, ahora está vacío esperando Login real
-    theme: 'light',
-    isLoading: false,
-    error: null
-};
-
 export const Store = {
-    state: initialState,
+    state: {
+        user: null,
+        leads: [],
+        clients: [],
+        tasks: []
+    },
+
+    init() {
+        // --- PROTECCIÓN CONTRA ERRORES (Recomendación de Claude) ---
+        try {
+            const savedUser = localStorage.getItem('crm_user');
+            if (savedUser) {
+                this.state.user = JSON.parse(savedUser);
+            }
+        } catch (error) {
+            console.error('Error recuperando sesión, limpiando datos corruptos...', error);
+            localStorage.removeItem('crm_user');
+            this.state.user = null;
+        }
+    },
 
     getState() {
         return this.state;
@@ -17,18 +28,11 @@ export const Store = {
 
     setUser(user) {
         this.state.user = user;
-        // Persistir en localStorage para que no se cierre al recargar (opcional por ahora)
-        if(user) localStorage.setItem('crm_user', JSON.stringify(user));
-        else localStorage.removeItem('crm_user');
-        
-        PubSub.publish('AUTH_CHANGED', user);
-    },
-
-    // Recuperar sesión si existe (útil para cuando recargas la página)
-    init() {
-        const saved = localStorage.getItem('crm_user');
-        if(saved) {
-            this.state.user = JSON.parse(saved);
+        if (user) {
+            localStorage.setItem('crm_user', JSON.stringify(user));
+        } else {
+            localStorage.removeItem('crm_user');
         }
+        PubSub.publish('AUTH_CHANGED', user);
     }
 };
