@@ -11,27 +11,23 @@ export const LoginModule = {
                 .logo-circle { width: 90px; height: 90px; background: white; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #F1F5F9; padding: 15px; box-sizing: border-box; }
                 h2 { margin: 0 0 10px 0; color: #1E293B; font-weight: 800; font-size: 1.5rem; }
                 p { color: #64748B; font-size: 0.9rem; margin: 0 0 25px 0; line-height: 1.5; }
-                .input-group { margin-bottom: 15px; text-align: left; position: relative; } /* Relative para el ojo */
+                .input-group { margin-bottom: 15px; text-align: left; position: relative; }
                 .input-label { display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 5px; }
                 .auth-input { width: 100%; padding: 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 1rem; outline: none; transition: border 0.2s; box-sizing: border-box; }
                 .auth-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
                 .btn-auth { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: transform 0.1s; margin-top: 10px; }
+                .btn-auth.secondary { background: #fff; color: var(--primary); border: 1px solid var(--primary); margin-top: 0; }
                 .auth-links { margin-top: 20px; font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px; }
                 .link { color: var(--primary); text-decoration: none; cursor: pointer; font-weight: 500; }
+                .link:hover { text-decoration: underline; }
+                
+                /* VISTAS */
                 .auth-view { display: none; animation: fadeIn 0.3s ease; }
                 .auth-view.active { display: block; }
-                
-                /* ESTILOS DEL OJO */
+
+                /* OJO PASSWORD */
                 .password-wrapper { position: relative; width: 100%; }
-                .toggle-password {
-                    position: absolute;
-                    right: 12px;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    cursor: pointer;
-                    color: #94A3B8;
-                    user-select: none;
-                }
+                .toggle-password { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94A3B8; user-select: none; }
                 .toggle-password:hover { color: var(--primary); }
 
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -51,7 +47,6 @@ export const LoginModule = {
                                 <label class="input-label">Correo Electrónico</label>
                                 <input type="email" name="email" class="auth-input" required>
                             </div>
-                            
                             <div class="input-group">
                                 <label class="input-label">Contraseña</label>
                                 <div class="password-wrapper">
@@ -61,7 +56,6 @@ export const LoginModule = {
                                     </span>
                                 </div>
                             </div>
-
                             <button type="submit" class="btn-auth">Ingresar</button>
                         </form>
                         <div class="auth-links">
@@ -69,13 +63,37 @@ export const LoginModule = {
                             <span style="color:#94A3B8;">¿Nuevo aquí? <span class="link" onclick="switchView('viewRequest')">Solicitar Acceso</span></span>
                         </div>
                     </div>
+
+                    <div id="viewForgot" class="auth-view">
+                        <h2>Recuperar Cuenta</h2>
+                        <p>Te enviaremos un enlace a tu correo.</p>
+                        <form onsubmit="event.preventDefault(); alert('Función de recuperación simulada. Revisa tu correo.'); switchView('viewLogin');">
+                            <div class="input-group">
+                                <label class="input-label">Correo Electrónico</label>
+                                <input type="email" class="auth-input" required>
+                            </div>
+                            <button type="submit" class="btn-auth">Enviar Enlace</button>
+                            <button type="button" class="btn-auth secondary" onclick="switchView('viewLogin')" style="margin-top:10px;">Volver</button>
+                        </form>
+                    </div>
+
+                    <div id="viewRequest" class="auth-view">
+                        <h2>Solicitar Acceso</h2>
+                        <p>Este es un CRM privado. Contacta al administrador.</p>
+                        <div style="text-align:left; background:#F1F5F9; padding:15px; border-radius:8px; margin-bottom:20px; font-size:0.9rem;">
+                            <strong>Administrador:</strong> Diego Gonzales<br>
+                            <strong>Correo:</strong> admin@magicdesign.com
+                        </div>
+                        <button type="button" class="btn-auth secondary" onclick="switchView('viewLogin')">Volver al Login</button>
+                    </div>
+
                 </div>
             </div>
         `;
     },
 
     init: async () => {
-        // Carga dinámica del servicio
+        // Cargar AuthService
         let AuthService;
         try {
             const module = await import('../services/auth.service.js');
@@ -85,13 +103,14 @@ export const LoginModule = {
             return;
         }
 
+        // --- FUNCIÓN GLOBAL PARA CAMBIAR VISTAS ---
         window.switchView = (viewId) => {
             document.querySelectorAll('.auth-view').forEach(el => el.classList.remove('active'));
             const el = document.getElementById(viewId);
             if(el) el.classList.add('active');
         };
 
-        // --- LÓGICA DEL OJO (TOGGLE PASSWORD) ---
+        // --- LÓGICA DEL OJO ---
         const togglePassword = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('passwordInput');
         
@@ -99,8 +118,7 @@ export const LoginModule = {
             togglePassword.addEventListener('click', () => {
                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 passwordInput.setAttribute('type', type);
-                
-                // Cambiar icono (opcional, tachado o normal)
+                // Icono
                 if (type === 'text') {
                     togglePassword.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
                 } else {
@@ -108,41 +126,37 @@ export const LoginModule = {
                 }
             });
         }
-        // -----------------------------------------
 
+        // --- LÓGICA DE LOGIN ---
         const loginForm = document.getElementById('loginForm');
         if(loginForm) {
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const btn = loginForm.querySelector('button');
+                const btn = loginForm.querySelector('button[type="submit"]');
                 const originalText = btn.innerText;
                 
                 btn.innerText = 'Conectando...'; 
                 btn.disabled = true;
                 
                 const email = loginForm.email.value;
-                const password = loginForm.password.value; // Usamos la variable correcta
+                const password = loginForm.password.value;
 
                 try {
-                    console.log("Intentando login...");
                     const firebaseUser = await AuthService.login(email, password);
                     
-                    // --- FIX USUARIO: Formateamos los datos para que no salga Undefined ---
+                    // --- FIX USUARIO UNDEFINED ---
+                    const safeName = firebaseUser.displayName || firebaseUser.email.split('@')[0];
                     const appUser = {
-                        name: firebaseUser.displayName || firebaseUser.email.split('@')[0], // Usa el email si no tiene nombre
+                        name: safeName.charAt(0).toUpperCase() + safeName.slice(1), 
                         email: firebaseUser.email,
                         photo: firebaseUser.photoURL,
-                        role: 'Admin' // Le asignamos un rol por defecto
+                        role: 'Admin'
                     };
 
-                    // Guardamos el usuario corregido
                     Store.setUser(appUser);
 
-                    // --- FIX REDIRECCIÓN ---
-                    // Usamos Router.navigateTo en lugar de reload() para no romper la URL en GitHub
-                    console.log("Login OK -> Dashboard");
+                    // --- NAVEGACIÓN SEGURA ---
                     Router.navigateTo('/dashboard');
-                    // -----------------------
 
                 } catch (error) {
                     console.error("Error Login:", error);
