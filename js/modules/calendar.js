@@ -146,7 +146,6 @@ export const CalendarModule = {
     },
 
     init: async () => {
-        Layout.init();
         Modal.initEvents('modalCalendar');
 
         CalendarModule.currentDate = new Date();
@@ -257,3 +256,4 @@ export const CalendarModule = {
     destroy: () => { delete window.openDayDetail; }
 
 };
+
