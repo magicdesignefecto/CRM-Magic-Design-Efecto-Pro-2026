@@ -15,15 +15,17 @@ export const SettingsModule = {
                     </h3>
                     
                     <div style="display:flex; gap:10px; margin-top:20px;">
-                        <input type="text" placeholder="Ej: Consultoría SEO..." style="flex:1; padding:10px; border:1px solid #cbd5e1; border-radius:6px;">
+                        <input type="text" placeholder="Ej: Consultoría SEO..." style="flex:1; padding:10px; border:1px solid #cbd5e1; border-radius:6px; outline:none;">
                         <button style="background:#2563EB; color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:600; cursor:pointer;">Agregar</button>
                     </div>
 
                     <div class="tags-container" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;">
-                        <span style="background:#F1F5F9; padding:5px 12px; border-radius:20px; font-size:0.9rem; color:#475569; border:1px solid #E2E8F0;">Gestión Redes Sociales ✕</span>
-                        <span style="background:#F1F5F9; padding:5px 12px; border-radius:20px; font-size:0.9rem; color:#475569; border:1px solid #E2E8F0;">Facebook/IG Ads ✕</span>
-                        <span style="background:#F1F5F9; padding:5px 12px; border-radius:20px; font-size:0.9rem; color:#475569; border:1px solid #E2E8F0;">Diseño Web ✕</span>
-                        <span style="background:#F1F5F9; padding:5px 12px; border-radius:20px; font-size:0.9rem; color:#475569; border:1px solid #E2E8F0;">Google Ads ✕</span>
+                        <span style="background:white; padding:6px 14px; border-radius:20px; font-size:0.9rem; color:#475569; border:1px solid #CBD5E1; cursor:pointer;">Gestión Redes Sociales ✕</span>
+                        <span style="background:white; padding:6px 14px; border-radius:20px; font-size:0.9rem; color:#475569; border:1px solid #CBD5E1; cursor:pointer;">Facebook/IG Ads ✕</span>
+                        <span style="background:white; padding:6px 14px; border-radius:20px; font-size:0.9rem; color:#475569; border:1px solid #CBD5E1; cursor:pointer;">Diseño Web ✕</span>
+                        <span style="background:white; padding:6px 14px; border-radius:20px; font-size:0.9rem; color:#475569; border:1px solid #CBD5E1; cursor:pointer;">Google Ads ✕</span>
+                        <span style="background:white; padding:6px 14px; border-radius:20px; font-size:0.9rem; color:#475569; border:1px solid #CBD5E1; cursor:pointer;">SEO ✕</span>
+                        <span style="background:white; padding:6px 14px; border-radius:20px; font-size:0.9rem; color:#475569; border:1px solid #CBD5E1; cursor:pointer;">Branding ✕</span>
                     </div>
                 </div>
 
@@ -33,19 +35,18 @@ export const SettingsModule = {
                     </h3>
                     <p style="color:#64748b; font-size:0.9rem;">Selecciona un cliente para auditar:</p>
                     
-                    <select style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:10px; background:white;">
+                    <select style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; margin-top:10px; background:white; outline:none;">
                         <option>-- Buscar Cliente --</option>
+                        <option>Clínica Dental Pérez</option>
+                        <option>Gym Force</option>
                     </select>
 
-                    <button style="width:100%; margin-top:20px; background:white; border:1px solid #2563EB; color:#2563EB; padding:10px; border-radius:6px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <button style="width:100%; margin-top:20px; background:white; border:1px solid #2563EB; color:#2563EB; padding:12px; border-radius:6px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                         📄 Descargar Reporte (Con Fechas y Horas)
                     </button>
                 </div>
             </div>
         `;
     },
-
-    init: async () => {
-        console.log("Settings cargado");
-    }
+    init: async () => {}
 };
