@@ -1,0 +1,34 @@
+:root {
+    /* --- 1. Paleta de Colores (Magic Design: Azul y Blanco) --- */
+    /* Azul Principal (Extraído de la marca para botones y destacados) */
+    --primary: #0056D2;       
+    --primary-dark: #0044A6;  /* Sombra del botón 3D */
+    --primary-light: #E8F0FE; /* Fondos suaves */
+
+    /* Escala de Grises y Textos */
+    --text-main: #111827;     /* Casi negro para lectura fácil */
+    --text-muted: #6B7280;    /* Gris para textos secundarios */
+    --text-light: #FFFFFF;    /* Texto sobre botones azules */
+
+    /* Fondos */
+    --bg-body: #F3F4F6;       /* Gris muy claro, elegante para el fondo de la app */
+    --bg-card: #FFFFFF;       /* Blanco puro para tarjetas y contenedores */
+    --bg-sidebar: #FFFFFF;    
+
+    /* --- 2. Efectos 3D y Sombras (Minimalismo Moderno) --- */
+    /* Sombra suave para tarjetas (Elevación) */
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    
+    /* Efecto Botón 3D (La clave de tu diseño) */
+    --btn-shadow: 0 4px 0 var(--primary-dark);
+    --btn-shadow-hover: 0 6px 0 var(--primary-dark);
+    --btn-shadow-active: 0 0 0 var(--primary-dark);
+    --btn-transform-hover: translateY(-2px);
+    --btn-transform-active: translateY(4px);
+
+    /* --- 3. Espaciado y Bordes --- */
+    --radius-md: 10px;        /* Bordes redondeados modernos */
+    --header-height: 70px;
+    --sidebar-width: 260px;
+    --font-main: 'Inter', sans-serif;
+}
