@@ -1,79 +1,97 @@
-import { Store } from '../core/store.js';
+import { DashboardService } from '../services/dashboard.service.js';
+import { Formatters } from '../utils/formatters.js';
 
-export const Dashboard = {
+// ❌ SIN IMPORTAR LAYOUT
+
+export const DashboardModule = {
     render: async () => {
-        // Obtenemos datos del usuario (o valores por defecto)
-        const user = Store.getState().user || { name: 'Usuario' };
+        const data = await DashboardService.getData();
+        const { stats, recentLeads } = data;
 
-        // Devolvemos SOLO el contenido interno (sin barra lateral ni header, porque app.js ya los pone)
-        return `
-            <div class="dashboard-content">
-                <div class="welcome-banner" style="margin-bottom: 30px;">
-                    <h2 style="margin:0; color: #1e293b;">Resumen General</h2>
-                    <p style="color: #64748b; margin-top:5px;">Bienvenido al panel de control, ${user.name}.</p>
+        const content = `
+            <style>
+                .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px; }
+                .kpi-card { background: white; padding: 25px; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: space-between; }
+                .kpi-title { font-size: 0.9rem; color: #64748B; font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+                .kpi-value { font-size: 2rem; font-weight: 800; color: #1E293B; }
+                .kpi-trend { font-size: 0.8rem; margin-top: 5px; font-weight: 500; }
+                .trend-up { color: #10B981; }
+                .trend-neutral { color: #94A3B8; }
+
+                .dash-section { background: white; border-radius: 12px; border: 1px solid #E2E8F0; padding: 25px; margin-bottom: 30px; }
+                .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+                .section-title { font-size: 1.1rem; font-weight: 700; color: #1E293B; margin: 0; }
+                
+                .activity-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F5F9; }
+                .activity-item:last-child { border-bottom: none; }
+                .act-icon { width: 40px; height: 40px; border-radius: 50%; background: #EFF6FF; color: #3B82F6; display: flex; align-items: center; justify-content: center; font-weight: 700; margin-right: 15px; }
+                .act-info { flex: 1; }
+                .act-title { font-weight: 600; font-size: 0.95rem; color: #334155; }
+                .act-meta { font-size: 0.8rem; color: #94A3B8; }
+                .act-amount { font-weight: 700; color: #10B981; font-size: 0.9rem; }
+            </style>
+
+            <div class="page-header" style="margin-bottom: 25px;">
+                <h2 style="font-size: 1.75rem; font-weight: 800; color: #1E293B; margin:0;">Dashboard</h2>
+                <p style="color: #64748B; margin-top:5px;">Resumen general de tu negocio</p>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-title">Clientes Activos</div>
+                    <div class="kpi-value">${stats.clients}</div>
+                    <div class="kpi-trend trend-up">👥 Cartera Total</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Prospectos (Leads)</div>
+                    <div class="kpi-value">${stats.leads}</div>
+                    <div class="kpi-trend trend-neutral">📥 En seguimiento</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Proyectos Activos</div>
+                    <div class="kpi-value">${stats.projects}</div>
+                    <div class="kpi-trend trend-neutral">🔨 En desarrollo</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Estimación Ventas</div>
+                    <div class="kpi-value" style="color:#10B981;">${Formatters.toCurrency(stats.revenue, 'USD')}</div>
+                    <div class="kpi-trend trend-up">💰 Valor en Pipeline</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+                
+                <div class="dash-section">
+                    <div class="section-header">
+                        <h3 class="section-title">Últimos Leads</h3>
+                        <a href="/leads" style="color:#3B82F6; font-size:0.85rem; font-weight:600; text-decoration:none;">Ver todos</a>
+                    </div>
+                    <div id="recentActivityList">
+                        ${recentLeads.length > 0 ? recentLeads.map(l => `
+                            <div class="activity-item">
+                                <div class="act-icon">${l.name.charAt(0)}</div>
+                                <div class="act-info">
+                                    <div class="act-title">${l.name}</div>
+                                    <div class="act-meta">${l.company || 'Particular'} • ${l.status}</div>
+                                </div>
+                                <div class="act-amount">${Formatters.toCurrency(l.total, l.currency)}</div>
+                            </div>
+                        `).join('') : '<p style="color:#94A3B8; text-align:center;">Sin actividad reciente</p>'}
+                    </div>
                 </div>
 
-                <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                    <div class="kpi-card" style="background:white; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.03); border:1px solid #e2e8f0; display:flex; align-items:center; gap:15px;">
-                        <div class="icon-box" style="width:50px; height:50px; background:#EFF6FF; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#3B82F6;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                        </div>
-                        <div>
-                            <div style="font-size:0.8rem; font-weight:600; color:#64748b; text-transform:uppercase;">Total Leads</div>
-                            <div style="font-size:1.5rem; font-weight:800; color:#0f172a;">0</div>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card" style="background:white; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.03); border:1px solid #e2e8f0; display:flex; align-items:center; gap:15px;">
-                        <div class="icon-box" style="width:50px; height:50px; background:#F0FDF4; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#22C55E;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                        </div>
-                        <div>
-                            <div style="font-size:0.8rem; font-weight:600; color:#64748b; text-transform:uppercase;">Clientes Nuevos</div>
-                            <div style="font-size:1.5rem; font-weight:800; color:#0f172a;">0</div>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card" style="background:white; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.03); border:1px solid #e2e8f0; display:flex; align-items:center; gap:15px;">
-                        <div class="icon-box" style="width:50px; height:50px; background:#FFF7ED; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#F59E0B;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                        </div>
-                        <div>
-                            <div style="font-size:0.8rem; font-weight:600; color:#64748b; text-transform:uppercase;">Ingresos Mes</div>
-                            <div style="font-size:1.5rem; font-weight:800; color:#0f172a;">0</div>
-                        </div>
-                    </div>
-
-                    <div class="kpi-card" style="background:white; padding:20px; border-radius:12px; box-shadow:0 2px 10px rgba(0,0,0,0.03); border:1px solid #e2e8f0; display:flex; align-items:center; gap:15px;">
-                        <div class="icon-box" style="width:50px; height:50px; background:#FFF1F2; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#F43F5E;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
-                        </div>
-                        <div>
-                            <div style="font-size:0.8rem; font-weight:600; color:#64748b; text-transform:uppercase;">Conversión</div>
-                            <div style="font-size:1.5rem; font-weight:800; color:#0f172a;">0%</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="charts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                    <div class="chart-card" style="background:white; padding:20px; border-radius:12px; border:1px solid #e2e8f0; height:300px; display:flex; align-items:center; justify-content:center; color:#94a3b8;">
-                        <div>
-                            <span style="display:block; font-size:2rem; margin-bottom:10px;">📊</span>
-                            Gráfica de Rendimiento<br><small>(Esperando datos...)</small>
-                        </div>
-                    </div>
-                    <div class="chart-card" style="background:white; padding:20px; border-radius:12px; border:1px solid #e2e8f0; height:300px; display:flex; align-items:center; justify-content:center; color:#94a3b8;">
-                        <div>
-                            <span style="display:block; font-size:2rem; margin-bottom:10px;">🔔</span>
-                            Actividad Reciente<br><small>(Sin notificaciones nuevas)</small>
-                        </div>
-                    </div>
+                <div class="dash-section" style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; text-align:center;">
+                    <div style="font-size:3rem; margin-bottom:10px;">📊</div>
+                    <h3 style="color:#475569;">Análisis de Ventas</h3>
+                    <p style="color:#94A3B8; font-size:0.9rem;">Próximamente con datos reales</p>
                 </div>
             </div>
         `;
+        
+        return content;
     },
 
     init: async () => {
-        console.log("Dashboard cargado");
+        // Lógica de inicialización si fuera necesaria
     }
 };
