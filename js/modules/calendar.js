@@ -1,9 +1,6 @@
 import { Modal } from '../components/Modal.js';
 import { ProjectsService } from '../services/projects.service.js';
 import { Formatters } from '../utils/formatters.js';
-
-// ❌ AQUÍ BORRAMOS EL IMPORT DE LAYOUT QUE CAUSABA ERROR
-
 export const CalendarModule = {
     currentDate: new Date(),
 
@@ -79,8 +76,27 @@ export const CalendarModule = {
                 .calendar-wrapper { background: white; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
                 .days-header { display: grid; grid-template-columns: repeat(7, 1fr); background: #F8FAFC; border-bottom: 1px solid #E2E8F0; }
                 .day-name { padding: 12px 0; text-align: center; font-size: 0.75rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; }
-                .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); background: #E2E8F0; gap: 1px; }
-                .cal-cell { background: white; min-height: 100px; padding: 8px; cursor: pointer; transition: background 0.2s; display: flex; flex-direction: column; gap: 4px; }
+                /* Quitamos el gap y el fondo gris del contenedor */
+.calendar-grid { 
+    display: grid; 
+    grid-template-columns: repeat(7, 1fr); 
+    background: white; /* Fondo blanco */
+    border-top: 1px solid #E2E8F0;
+    border-left: 1px solid #E2E8F0;
+}
+
+/* Le ponemos borde a cada celda (derecha y abajo) */
+.cal-cell { 
+    background: white; 
+    min-height: 100px; 
+    padding: 8px; 
+    cursor: pointer; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 4px;
+    border-right: 1px solid #E2E8F0; /* Línea vertical */
+    border-bottom: 1px solid #E2E8F0; /* Línea horizontal */
+}
                 .cal-cell:hover { background: #F8FAFC; }
                 .cell-number { font-size: 0.9rem; font-weight: 600; color: #475569; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
                 .cell-number.today { background: var(--primary); color: white; box-shadow: 0 2px 5px rgba(59, 130, 246, 0.4); }
@@ -271,3 +287,4 @@ export const CalendarModule = {
 
     destroy: () => { delete window.openDayDetail; }
 };
+
