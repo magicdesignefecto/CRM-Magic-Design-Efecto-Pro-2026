@@ -1,52 +1,57 @@
-import { auth } from '../core/firebase-config.js';
+import { auth } from '../core/firebase-config.js'; // Importamos la auth de TU proyecto nuevo
 import { 
+    createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
     signOut, 
     onAuthStateChanged,
-    sendPasswordResetEmail
+    updateProfile 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { Store } from '../core/store.js';
 
 export const AuthService = {
-    // Entrar
-    login: async (email, password) => {
+    // 1. REGISTRAR NUEVO USUARIO
+    register: async (email, password, name) => {
         try {
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            return userCredential.user;
+            // Crea el usuario en Firebase
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // Guardamos el nombre del usuario (opcional pero recomendado)
+            await updateProfile(user, { displayName: name });
+            
+            console.log("✅ Usuario registrado:", user.email);
+            return user;
         } catch (error) {
-            console.error("Error Login:", error.code);
-            throw error; // Lanzamos el error para que la UI lo muestre
+            console.error("Error en registro:", error.code, error.message);
+            throw error; // Lanzamos el error para mostrarlo en pantalla (ej: "correo ya existe")
         }
     },
 
-    // Salir
+    // 2. INICIAR SESIÓN
+    login: async (email, password) => {
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            console.log("✅ Sesión iniciada:", userCredential.user.email);
+            return userCredential.user;
+        } catch (error) {
+            console.error("Error en login:", error.code);
+            throw error; // Lanzamos error (ej: "contraseña incorrecta")
+        }
+    },
+
+    // 3. CERRAR SESIÓN
     logout: async () => {
-        await signOut(auth);
-        Store.setUser(null);
-        window.location.href = '/'; // Recarga para ir al Login
+        try {
+            await signOut(auth);
+            console.log("🔒 Sesión cerrada");
+            return true;
+        } catch (error) {
+            console.error("Error cerrando sesión:", error);
+            return false;
+        }
     },
 
-    // Recuperar Password
-    resetPassword: async (email) => {
-        await sendPasswordResetEmail(auth, email);
-    },
-
-    // "Espía" que mantiene la sesión activa al recargar
-    initAuthListener: () => {
-        onAuthStateChanged(auth, (firebaseUser) => {
-            if (firebaseUser) {
-                // Usuario detectado
-                const user = {
-                    name: 'Diego Gonzales', // (Más adelante lo sacaremos de la base de datos)
-                    email: firebaseUser.email,
-                    role: 'CEO',
-                    uid: firebaseUser.uid
-                };
-                // Guardamos en el Store Global [cite: 146]
-                Store.setUser(user);
-            } else {
-                Store.setUser(null);
-            }
-        });
+    // 4. VIGILANTE DE SESIÓN (Para saber si estás logueado al recargar)
+    onAuthStateChanged: (callback) => {
+        return onAuthStateChanged(auth, callback);
     }
 };
