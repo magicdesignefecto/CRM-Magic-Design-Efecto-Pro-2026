@@ -2,6 +2,8 @@ import { Modal } from '../components/Modal.js';
 import { ProjectsService } from '../services/projects.service.js';
 import { Formatters } from '../utils/formatters.js';
 
+// ❌ AQUÍ BORRAMOS EL IMPORT DE LAYOUT QUE CAUSABA ERROR
+
 export const CalendarModule = {
     currentDate: new Date(),
 
@@ -23,7 +25,7 @@ export const CalendarModule = {
                     border: 1px solid #F1F5F9;
                     box-shadow: 0 2px 10px rgba(0,0,0,0.02);
                     flex-wrap: wrap;
-                    gap: 15px; /* Espacio entre filas si hace wrap */
+                    gap: 15px;
                 }
 
                 .cal-controls-left {
@@ -87,23 +89,16 @@ export const CalendarModule = {
                 .task-pill { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: #EFF6FF; color: #1D4ED8; border-left: 2px solid #3B82F6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
                 .delivery-pill { background: #ECFDF5; color: #047857; border-left: 2px solid #10B981; }
 
-                /* --- AJUSTES MÓVIL (CORREGIDO CENTRADO) --- */
+                /* --- AJUSTES MÓVIL --- */
                 @media (max-width: 480px) {
                     .cal-cell { min-height: 70px; padding: 4px; align-items: center; }
                     .cell-number { font-size: 0.8rem; width: 24px; height: 24px; }
                     .task-pill { font-size: 0px; height: 6px; width: 6px; padding: 0; border-radius: 50%; background: #3B82F6; border: none; }
                     .delivery-pill { background: #10B981; }
                     
-                    /* Centrado de controles */
                     .cal-controls-left { width: 100%; justify-content: space-between; }
                     .cal-select { flex: 1; }
-                    
-                    /* AQUÍ ESTÁ LA MAGIA: Forzar ancho completo y centrar contenido */
-                    .cal-nav-buttons { 
-                        width: 100%; 
-                        justify-content: center; 
-                        margin-top: 5px;
-                    }
+                    .cal-nav-buttons { width: 100%; justify-content: center; margin-top: 5px; }
                 }
             </style>
 
@@ -142,10 +137,14 @@ export const CalendarModule = {
             
             ${Modal.render('Agenda del Día', '<div id="dayDetailsContent"></div>', 'modalCalendar')}
         `;
+        
+        // ❌ CAMBIO IMPORTANTE: AQUÍ BORRAMOS EL ENVOLTORIO "Layout.render()"
         return pageContent;
     },
 
     init: async () => {
+        // ❌ CAMBIO IMPORTANTE: AQUÍ BORRAMOS "Layout.init()"
+        
         Modal.initEvents('modalCalendar');
 
         CalendarModule.currentDate = new Date();
@@ -154,53 +153,70 @@ export const CalendarModule = {
         const monthSelect = document.getElementById('calMonthSelect');
         const yearInput = document.getElementById('calYearInput');
 
-        monthSelect.addEventListener('change', (e) => {
-            CalendarModule.currentDate.setMonth(parseInt(e.target.value));
-            CalendarModule.updateCalendarView();
-        });
+        if(monthSelect) {
+            monthSelect.addEventListener('change', (e) => {
+                CalendarModule.currentDate.setMonth(parseInt(e.target.value));
+                CalendarModule.updateCalendarView();
+            });
+        }
 
-        yearInput.addEventListener('change', (e) => {
-            CalendarModule.currentDate.setFullYear(parseInt(e.target.value));
-            CalendarModule.updateCalendarView();
-        });
+        if(yearInput) {
+            yearInput.addEventListener('change', (e) => {
+                CalendarModule.currentDate.setFullYear(parseInt(e.target.value));
+                CalendarModule.updateCalendarView();
+            });
+        }
 
-        document.getElementById('btnPrevMonth').addEventListener('click', () => {
+        const btnPrev = document.getElementById('btnPrevMonth');
+        if(btnPrev) btnPrev.addEventListener('click', () => {
             CalendarModule.currentDate.setMonth(CalendarModule.currentDate.getMonth() - 1);
             CalendarModule.updateCalendarView();
         });
 
-        document.getElementById('btnNextMonth').addEventListener('click', () => {
+        const btnNext = document.getElementById('btnNextMonth');
+        if(btnNext) btnNext.addEventListener('click', () => {
             CalendarModule.currentDate.setMonth(CalendarModule.currentDate.getMonth() + 1);
             CalendarModule.updateCalendarView();
         });
 
-        document.getElementById('btnToday').addEventListener('click', () => {
+        const btnToday = document.getElementById('btnToday');
+        if(btnToday) btnToday.addEventListener('click', () => {
             CalendarModule.currentDate = new Date();
             CalendarModule.updateCalendarView();
         });
     },
 
     updateCalendarView: async () => {
-        document.getElementById('calMonthSelect').value = CalendarModule.currentDate.getMonth();
-        document.getElementById('calYearInput').value = CalendarModule.currentDate.getFullYear();
+        const mSelect = document.getElementById('calMonthSelect');
+        const yInput = document.getElementById('calYearInput');
+        
+        if(mSelect) mSelect.value = CalendarModule.currentDate.getMonth();
+        if(yInput) yInput.value = CalendarModule.currentDate.getFullYear();
+        
         await CalendarModule.loadCalendar(CalendarModule.currentDate);
     },
 
     loadCalendar: async (date) => {
         const grid = document.getElementById('calendarGrid');
-        const projects = await ProjectsService.getAll(); 
+        
+        // RECUPERAMOS TU LÓGICA DE SERVICIOS
         let allTasks = [];
         
-        projects.forEach(p => {
-            if(p.tasks && p.tasks.length > 0) {
-                p.tasks.forEach(t => {
-                    allTasks.push({ ...t, type: 'task', projectName: p.name, clientName: p.client, clientPhone: "59170000000" });
-                });
-            }
-            if(p.endDate) {
-                allTasks.push({ description: `Entrega: ${p.name}`, date: p.endDate, type: 'delivery', projectName: p.name, clientName: p.client, clientPhone: "59170000000" });
-            }
-        });
+        try {
+            const projects = await ProjectsService.getAll(); 
+            projects.forEach(p => {
+                if(p.tasks && p.tasks.length > 0) {
+                    p.tasks.forEach(t => {
+                        allTasks.push({ ...t, type: 'task', projectName: p.name, clientName: p.client, clientPhone: "59170000000" });
+                    });
+                }
+                if(p.endDate) {
+                    allTasks.push({ description: `Entrega: ${p.name}`, date: p.endDate, type: 'delivery', projectName: p.name, clientName: p.client, clientPhone: "59170000000" });
+                }
+            });
+        } catch (error) {
+            console.warn("No se pudieron cargar los proyectos para el calendario", error);
+        }
 
         const year = date.getFullYear();
         const month = date.getMonth();
@@ -244,7 +260,7 @@ export const CalendarModule = {
                         <h4 style="margin:0; color:#1E293B;">${t.description}</h4>
                         <div style="font-size:0.85rem; color:#64748B;">📂 ${t.projectName} | 👤 ${t.clientName}</div>
                         <div style="margin-top:10px;">
-                            <a href="https://wa.me/${t.clientPhone}?text=Consulta sobre: ${encodeURIComponent(t.description)}" target="_blank" class="btn-3d" style="background:#22C55E; color:white; padding:5px 10px; font-size:0.8rem; text-decoration:none;">💬 WhatsApp</a>
+                            <a href="https://wa.me/${t.clientPhone}?text=Consulta sobre: ${encodeURIComponent(t.description)}" target="_blank" class="btn-3d" style="background:#22C55E; color:white; padding:5px 10px; border-radius:4px; font-size:0.8rem; text-decoration:none;">💬 WhatsApp</a>
                         </div>
                     </div>`).join('');
             }
@@ -254,6 +270,4 @@ export const CalendarModule = {
     },
 
     destroy: () => { delete window.openDayDetail; }
-
 };
-
