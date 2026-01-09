@@ -1,239 +1,293 @@
-import { Store } from '../core/store.js';
-import { Router } from '../core/router.js';
+import { Modal } from '../components/Modal.js';
+import { ProjectsService } from '../services/projects.service.js';
+import { Formatters } from '../utils/formatters.js';
 
-export const Layout = {
-    render: (content, title = 'CRM') => {
-        // 1. Obtener usuario de forma segura
-        const user = Store.getState().user || { name: 'Usuario', role: 'Invitado' };
-        
-        // 2. Calcular iniciales
-        const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'US';
+// ❌ REMOVED IMPORT OF LAYOUT TO FIX DOUBLE COLUMN ISSUE
 
-        return `
-        <div class="app-layout">
-            <aside class="sidebar" id="sidebar">
-                <div class="logo-area">
-                    <div class="logo-circle">
-                        <img src="https://raw.githubusercontent.com/magicdesignefecto/Magic-Design-Efecto-Servicios-Gestion-de-Redes-Sociales/77cbcdf9e5992cc519ac102d1182d9397f23f12a/logo%20svg%20magic%20design%20efecto.svg" alt="Logo" style="width:45px; height:45px; object-fit:contain;">
-                    </div>
-                    <span class="logo-text">Magic CRM</span>
-                </div>
+export const CalendarModule = {
+    currentDate: new Date(),
+
+    render: async () => {
+        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const monthOptions = monthNames.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+
+        const pageContent = `
+            <style>
+                /* HEADER CON SELECTORES */
+                .cal-top-bar {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 25px;
+                    background: white;
+                    padding: 15px 20px;
+                    border-radius: 12px;
+                    border: 1px solid #F1F5F9;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+                    flex-wrap: wrap;
+                    gap: 15px;
+                }
+
+                .cal-controls-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .cal-nav-buttons {
+                    display: flex; 
+                    gap: 10px;
+                }
+
+                /* Selectores elegantes */
+                .cal-select {
+                    padding: 8px 12px;
+                    border: 1px solid #E2E8F0;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    color: #1E293B;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    background-color: white;
+                    outline: none;
+                }
+                .cal-select:hover { border-color: var(--primary); }
+
+                .cal-year-input {
+                    width: 80px;
+                    padding: 8px 10px;
+                    border: 1px solid #E2E8F0;
+                    border-radius: 8px;
+                    font-weight: 700;
+                    color: #1E293B;
+                    font-size: 1rem;
+                    outline: none;
+                }
+                .cal-year-input:focus { border-color: var(--primary); }
+
+                .nav-btn {
+                    background: transparent;
+                    border: 1px solid #E2E8F0;
+                    border-radius: 8px;
+                    width: 32px; height: 32px;
+                    display: flex; align-items: center; justify-content: center;
+                    cursor: pointer; color: #64748B; transition: all 0.2s;
+                }
+                .nav-btn:hover { background: #F8FAFC; color: var(--primary); border-color: var(--primary); }
+
+                /* GRILLA - FIX FOR MISSING LINES */
+                .calendar-wrapper { background: white; border-radius: 16px; border: 1px solid #E2E8F0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+                .days-header { display: grid; grid-template-columns: repeat(7, 1fr); background: #F8FAFC; border-bottom: 1px solid #E2E8F0; }
+                .day-name { padding: 12px 0; text-align: center; font-size: 0.75rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; }
                 
-                <nav class="nav-links">
-                    <a href="/dashboard" class="nav-item ${window.location.pathname.includes('/dashboard') ? 'active' : ''}" data-link>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                        <span>Dashboard</span>
-                    </a>
-                    <a href="/leads" class="nav-item ${window.location.pathname.includes('/leads') ? 'active' : ''}" data-link>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
-                        <span>Leads</span>
-                    </a>
-                    <a href="/clients" class="nav-item ${window.location.pathname.includes('/clients') ? 'active' : ''}" data-link>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                        <span>Clientes</span>
-                    </a>
-                    <a href="/pipeline" class="nav-item ${window.location.pathname.includes('/pipeline') ? 'active' : ''}" data-link>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-                        <span>Pipeline</span>
-                    </a>
-                    <a href="/quotes" class="nav-item ${window.location.pathname.includes('/quotes') ? 'active' : ''}" data-link>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                        <span>Cotizaciones</span>
-                    </a>
-                    <a href="/projects" class="nav-item ${window.location.pathname.includes('/projects') ? 'active' : ''}" data-link>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-                        <span>Proyectos</span>
-                    </a>
-                    <a href="/calendar" class="nav-item ${window.location.pathname.includes('/calendar') ? 'active' : ''}" data-link>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                        <span>Calendario</span>
-                    </a>
-                    <a href="/reports" class="nav-item ${window.location.pathname.includes('/reports') ? 'active' : ''}" data-link>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
-                        <span>Reportes</span>
-                    </a>
-                    <a href="/goals" class="nav-item ${window.location.pathname.includes('/goals') ? 'active' : ''}" data-link>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
-                        <span>Metas</span>
-                    </a>
-                    <a href="/settings" class="nav-item ${window.location.pathname.includes('/settings') ? 'active' : ''}" data-link>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                        <span>Configuración</span>
-                    </a>
-                </nav>
-            </aside>
+                /* FIX: Use explicit borders instead of gap for lines */
+                .calendar-grid { 
+                    display: grid; 
+                    grid-template-columns: repeat(7, 1fr); 
+                    background: white; 
+                    border-top: 1px solid #E2E8F0;
+                    border-left: 1px solid #E2E8F0;
+                }
 
-            <div class="main-wrapper">
+                .cal-cell { 
+                    background: white; 
+                    min-height: 100px; 
+                    padding: 8px; 
+                    cursor: pointer; 
+                    transition: background 0.2s; 
+                    display: flex; 
+                    flex-direction: column; 
+                    gap: 4px;
+                    border-right: 1px solid #E2E8F0; /* Right border */
+                    border-bottom: 1px solid #E2E8F0; /* Bottom border */
+                }
+                .cal-cell:hover { background: #F8FAFC; }
                 
-                <header class="top-bar">
-                    <div class="header-left">
-                        <button id="menuToggle" class="menu-toggle">☰</button>
-                        <h2 class="page-title">${title}</h2>
-                    </div>
+                .cell-number { font-size: 0.9rem; font-weight: 600; color: #475569; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+                .cell-number.today { background: var(--primary); color: white; box-shadow: 0 2px 5px rgba(59, 130, 246, 0.4); }
+
+                /* Píldoras */
+                .task-pill { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: #EFF6FF; color: #1D4ED8; border-left: 2px solid #3B82F6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+                .delivery-pill { background: #ECFDF5; color: #047857; border-left: 2px solid #10B981; }
+
+                /* --- AJUSTES MÓVIL --- */
+                @media (max-width: 480px) {
+                    .cal-cell { min-height: 70px; padding: 4px; align-items: center; }
+                    .cell-number { font-size: 0.8rem; width: 24px; height: 24px; }
+                    .task-pill { font-size: 0px; height: 6px; width: 6px; padding: 0; border-radius: 50%; background: #3B82F6; border: none; }
+                    .delivery-pill { background: #10B981; }
                     
-                    <div class="header-right" style="display:flex; align-items:center; gap:15px;">
-                        
-                        <div class="user-capsule">
-                            <div class="user-meta">
-                                <span class="u-name">${user.name}</span>
-                                <span class="u-divider">|</span>
-                                <span class="u-role">${user.role}</span>
-                            </div>
-                            <div class="user-avatar">
-                                ${initials}
-                            </div>
-                        </div>
+                    .cal-controls-left { width: 100%; justify-content: space-between; }
+                    .cal-select { flex: 1; }
+                    .cal-nav-buttons { width: 100%; justify-content: center; margin-top: 5px; }
+                }
+            </style>
 
-                        <button id="btnLogout" class="btn-logout" title="Cerrar Sesión">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                        </button>
-                    </div>
-                </header>
-
-                <main class="content-scroll-area">
-                    <div class="content-container">
-                        ${content}
-                    </div>
-                </main>
+            <div class="page-header">
+                <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main);">Calendario</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Agenda y Entregas</p>
             </div>
-        </div>
 
-        <style>
-            /* BASE */
-            * { box-sizing: border-box; }
-            body { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; background-color: #F8F9FA; }
+            <div class="cal-top-bar">
+                <div class="cal-controls-left">
+                    <select id="calMonthSelect" class="cal-select">
+                        ${monthOptions}
+                    </select>
+                    <input type="number" id="calYearInput" class="cal-year-input" value="${new Date().getFullYear()}" min="2020" max="2030">
+                </div>
+
+                <div class="cal-nav-buttons">
+                    <button id="btnPrevMonth" class="nav-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                    <button id="btnToday" class="nav-btn" style="width:auto; padding:0 15px; font-size:0.8rem; font-weight:600;">Hoy</button>
+                    <button id="btnNextMonth" class="nav-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="calendar-wrapper">
+                <div class="days-header">
+                    <div class="day-name">Lun</div><div class="day-name">Mar</div><div class="day-name">Mié</div>
+                    <div class="day-name">Jue</div><div class="day-name">Vie</div><div class="day-name">Sáb</div>
+                    <div class="day-name">Dom</div>
+                </div>
+                <div id="calendarGrid" class="calendar-grid"></div>
+            </div>
             
-            /* FIX MÓVIL: Altura dinámica para evitar cortes */
-            .app-layout { 
-                display: flex; 
-                width: 100vw; 
-                height: 100vh; 
-                height: 100dvh; /* Soporte mejorado para móviles */
-            }
-
-            /* ESTILO BOTÓN LOGOUT */
-            .btn-logout {
-                background: #FEE2E2; 
-                color: #EF4444; 
-                border: none;
-                width: 36px; height: 36px;
-                border-radius: 8px;
-                cursor: pointer;
-                display: flex; align-items: center; justify-content: center;
-                transition: all 0.2s;
-            }
-            .btn-logout:hover {
-                background: #EF4444;
-                color: white;
-                transform: scale(1.05);
-            }
-
-            /* ESTILO CÁPSULA USUARIO */
-            .user-capsule {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                background: white;
-                padding: 4px 4px 4px 16px;
-                border: 1px solid #E2E8F0;
-                border-radius: 50px;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-            }
-            .user-meta { display: flex; align-items: center; gap: 8px; }
-            .u-name { font-weight: 700; color: #1E293B; font-size: 0.9rem; white-space: nowrap; }
-            .u-divider { color: #CBD5E1; font-size: 0.8rem; }
-            .u-role { font-size: 0.75rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
-            
-            .user-avatar {
-                width: 34px; height: 34px;
-                background: var(--primary); 
-                color: white; 
-                border-radius: 50%; 
-                display: flex; align-items: center; justify-content: center; 
-                font-weight: 700; font-size: 0.85rem;
-            }
-
-            /* RESPONSIVE MÓVIL */
-            @media (max-width: 768px) {
-                .user-capsule { padding: 0; border: none; background: transparent; box-shadow: none; }
-                .user-meta { display: none; } /* Ocultar texto en móvil */
-                .header-right { gap: 10px; }
-            }
-
-            /* SIDEBAR */
-            .sidebar { width: 260px; background: white; border-right: 1px solid #E5E7EB; display: flex; flex-direction: column; flex-shrink: 0; z-index: 50; transition: transform 0.3s ease; }
-            .logo-area { height: 64px; display: flex; align-items: center; padding: 0 24px; border-bottom: 1px solid #F3F4F6; gap: 10px; }
-            .logo-text { font-weight: 800; font-size: 1.1rem; color: #111; letter-spacing: -0.5px; }
-            .nav-links { padding: 20px 16px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
-            .nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; color: #64748B; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.95rem; transition: all 0.2s; }
-            .nav-item:hover { background: #F1F5F9; color: #0F172A; }
-            .nav-item.active { background: #EFF6FF; color: var(--primary); font-weight: 600; }
-
-            /* MAIN WRAPPER */
-            .main-wrapper { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
-
-            /* TOPBAR */
-            .top-bar { height: 64px; width: 100%; background: white; border-bottom: 1px solid #E5E7EB; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; flex-shrink: 0; }
-            .header-left { display: flex; align-items: center; gap: 16px; overflow: hidden; }
-            .menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0; color: #64748B; }
-            .page-title { margin: 0; font-size: 1.25rem; font-weight: 700; color: #1E293B; white-space: nowrap; }
-            
-            /* SCROLL AREA FIX MÓVIL */
-            .content-scroll-area { 
-                flex: 1; 
-                overflow-y: auto; 
-                overflow-x: hidden; 
-                padding-bottom: 200px; /* <--- MÁS ESPACIO PARA QUE NO SE CORTE EN EL CELULAR */
-                -webkit-overflow-scrolling: touch; /* <--- SCROLL SUAVE EN IPHONE/ANDROID */
-            }
-            .content-container { padding: 24px; max-width: 100%; margin: 0 auto; width: 100%; }
-
-            /* MÓVIL */
-            @media (max-width: 768px) {
-                .sidebar { position: fixed; height: 100%; top: 0; left: 0; transform: translateX(-100%); box-shadow: 0 0 25px rgba(0,0,0,0.15); }
-                .sidebar.active { transform: translateX(0); }
-                .menu-toggle { display: block; }
-                .top-bar { padding: 0 16px; }
-                .page-title { font-size: 1.1rem; }
-            }
-        </style>
+            ${Modal.render('Agenda del Día', '<div id="dayDetailsContent"></div>', 'modalCalendar')}
         `;
+        
+        // ❌ REMOVED Layout.render() WRAPPER
+        return pageContent;
     },
 
     init: async () => {
-        const menuToggle = document.getElementById('menuToggle');
-        const sidebar = document.getElementById('sidebar');
+        // ❌ REMOVED Layout.init() CALL
         
-        // Cierre de menú móvil al hacer clic fuera
-        document.addEventListener('click', (e) => {
-            if(window.innerWidth <= 768 && sidebar.classList.contains('active')) {
-                if(!sidebar.contains(e.target) && !menuToggle.contains(e.target)) sidebar.classList.remove('active');
-            }
-        });
+        Modal.initEvents('modalCalendar');
 
-        if(menuToggle) menuToggle.addEventListener('click', (e) => { e.stopPropagation(); sidebar.classList.toggle('active'); });
+        CalendarModule.currentDate = new Date();
+        await CalendarModule.updateCalendarView();
 
-        // --- LÓGICA DE CIERRE DE SESIÓN (ACTUALIZADA PARA GITHUB) ---
-        const btnLogout = document.getElementById('btnLogout');
-        if (btnLogout) {
-            btnLogout.addEventListener('click', async () => {
-                if (confirm('¿Cerrar sesión?')) {
-                    try {
-                        // Importamos el servicio real para desconectar de Firebase
-                        const { AuthService } = await import('../services/auth.service.js');
-                        await AuthService.logout(); 
-                        
-                        // FIX CRÍTICO 404: Redirigir a la carpeta del proyecto, NO a la raíz
-                        window.location.href = '/CRM-Magic-Design-Efecto-Pro-2026/';
-                        
-                    } catch (error) {
-                        console.error("Error al salir:", error);
-                        // Si falla, forzamos salida manual apuntando a la carpeta correcta
-                        Store.setUser(null);
-                        window.location.href = '/CRM-Magic-Design-Efecto-Pro-2026/';
-                    }
-                }
+        const monthSelect = document.getElementById('calMonthSelect');
+        const yearInput = document.getElementById('calYearInput');
+
+        if(monthSelect) {
+            monthSelect.addEventListener('change', (e) => {
+                CalendarModule.currentDate.setMonth(parseInt(e.target.value));
+                CalendarModule.updateCalendarView();
             });
         }
-    }
+
+        if(yearInput) {
+            yearInput.addEventListener('change', (e) => {
+                CalendarModule.currentDate.setFullYear(parseInt(e.target.value));
+                CalendarModule.updateCalendarView();
+            });
+        }
+
+        const btnPrev = document.getElementById('btnPrevMonth');
+        if(btnPrev) btnPrev.addEventListener('click', () => {
+            CalendarModule.currentDate.setMonth(CalendarModule.currentDate.getMonth() - 1);
+            CalendarModule.updateCalendarView();
+        });
+
+        const btnNext = document.getElementById('btnNextMonth');
+        if(btnNext) btnNext.addEventListener('click', () => {
+            CalendarModule.currentDate.setMonth(CalendarModule.currentDate.getMonth() + 1);
+            CalendarModule.updateCalendarView();
+        });
+
+        const btnToday = document.getElementById('btnToday');
+        if(btnToday) btnToday.addEventListener('click', () => {
+            CalendarModule.currentDate = new Date();
+            CalendarModule.updateCalendarView();
+        });
+    },
+
+    updateCalendarView: async () => {
+        const mSelect = document.getElementById('calMonthSelect');
+        const yInput = document.getElementById('calYearInput');
+        
+        if(mSelect) mSelect.value = CalendarModule.currentDate.getMonth();
+        if(yInput) yInput.value = CalendarModule.currentDate.getFullYear();
+        
+        await CalendarModule.loadCalendar(CalendarModule.currentDate);
+    },
+
+    loadCalendar: async (date) => {
+        const grid = document.getElementById('calendarGrid');
+        
+        let allTasks = [];
+        
+        try {
+            const projects = await ProjectsService.getAll(); 
+            projects.forEach(p => {
+                if(p.tasks && p.tasks.length > 0) {
+                    p.tasks.forEach(t => {
+                        allTasks.push({ ...t, type: 'task', projectName: p.name, clientName: p.client, clientPhone: "59170000000" });
+                    });
+                }
+                if(p.endDate) {
+                    allTasks.push({ description: `Entrega: ${p.name}`, date: p.endDate, type: 'delivery', projectName: p.name, clientName: p.client, clientPhone: "59170000000" });
+                }
+            });
+        } catch (error) {
+            console.warn("No se pudieron cargar los proyectos para el calendario", error);
+        }
+
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startDayOfWeek = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; 
+
+        let html = '';
+        for (let i = 0; i < startDayOfWeek; i++) { html += `<div class="cal-cell" style="background:#F9FAFB; cursor:default;"></div>`; }
+
+        const today = new Date();
+        for (let day = 1; day <= daysInMonth; day++) {
+            const currentDayStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            const isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+            const dayTasks = allTasks.filter(t => t.date === currentDayStr);
+            const dots = dayTasks.map(t => `<div class="task-pill ${t.type === 'delivery' ? 'delivery-pill' : ''}">${t.description}</div>`).join('');
+
+            html += `
+                <div class="cal-cell" onclick="window.openDayDetail('${currentDayStr}')">
+                    <span class="cell-number ${isToday ? 'today' : ''}">${day}</span>
+                    <div style="display:flex; flex-direction:column; gap:2px; width:100%;">${dots}</div>
+                </div>
+            `;
+        }
+        grid.innerHTML = html;
+
+        window.openDayDetail = (dateStr) => {
+            const tasks = allTasks.filter(t => t.date === dateStr);
+            const container = document.getElementById('dayDetailsContent');
+            const dateObj = new Date(dateStr + 'T00:00:00');
+            const datePretty = dateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+            
+            let htmlContent = `<div style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;"><h3 style="margin:0; color:var(--primary); text-transform:capitalize;">${datePretty}</h3></div>`;
+
+            if(tasks.length === 0) {
+                htmlContent += `<div style="text-align:center; padding:20px;"><div style="font-size:2rem;">☕</div><p style="color:#64748B;">Sin actividad.</p></div>`;
+            } else {
+                htmlContent += tasks.map(t => `
+                    <div style="background:#F8FAFC; padding:12px; border-radius:8px; border:1px solid #E2E8F0; border-left:4px solid ${t.type === 'delivery' ? '#10B981' : '#3B82F6'}; margin-bottom:10px;">
+                        <h4 style="margin:0; color:#1E293B;">${t.description}</h4>
+                        <div style="font-size:0.85rem; color:#64748B;">📂 ${t.projectName} | 👤 ${t.clientName}</div>
+                        <div style="margin-top:10px;">
+                            <a href="https://wa.me/${t.clientPhone}?text=Consulta sobre: ${encodeURIComponent(t.description)}" target="_blank" class="btn-3d" style="background:#22C55E; color:white; padding:5px 10px; border-radius:4px; font-size:0.8rem; text-decoration:none;">💬 WhatsApp</a>
+                        </div>
+                    </div>`).join('');
+            }
+            container.innerHTML = htmlContent;
+            Modal.open('modalCalendar');
+        };
+    },
+
+    destroy: () => { delete window.openDayDetail; }
 };
