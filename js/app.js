@@ -1,12 +1,9 @@
-import { Store } from './core/store.js';
 import { AuthService } from './services/auth.service.js';
-import { Router } from './core/router.js';
 import { Layout } from './components/Layout.js';
-import { Config } from './core/config.js'; // <--- IMPORTAMOS EL CEREBRO
 
 // Módulos
 import { LoginModule } from './modules/login.js';
-import { Dashboard } from './modules/dashboard.js';
+import { DashboardModule } from './modules/dashboard.js'; // Asegúrate que se llame así en el export
 import { LeadsModule } from './modules/leads.js';
 import { ClientsModule } from './modules/clients.js';
 import { PipelineModule } from './modules/pipeline.js';
@@ -17,9 +14,10 @@ import { ReportsModule } from './modules/reports.js';
 import { GoalsModule } from './modules/goals.js';
 import { SettingsModule } from './modules/settings.js';
 
+// Mapeo de rutas a módulos
 const routes = {
-    '/': Dashboard,
-    '/dashboard': Dashboard,
+    '/': DashboardModule,
+    '/dashboard': DashboardModule,
     '/leads': LeadsModule,
     '/clients': ClientsModule,
     '/pipeline': PipelineModule,
@@ -31,82 +29,74 @@ const routes = {
     '/settings': SettingsModule
 };
 
+// Función principal del Router
 const router = async () => {
-    // Inicializar Auth Listener una sola vez
-    if (!window.authInitialized) {
-        AuthService.initAuthListener();
-        window.authInitialized = true;
-    }
-
     const contentDiv = document.getElementById('app');
-    Store.init(); // Ahora protegido con try-catch
-    const user = Store.getState().user;
     
-    // Obtenemos la ruta base automáticamente (Local o GitHub)
-    const BASE_PATH = Config.getBasePath();
-
-    // --- LIMPIEZA DE RUTA INTELIGENTE ---
-    let path = window.location.pathname;
+    // 1. Detectar Ruta limpia (para GitHub Pages o Local)
+    // Tomamos solo la parte final después del último /
+    let path = window.location.hash.replace('#', '') || '/';
     
-    // Si la ruta empieza con la base (ej: /CRM-Magic...), la quitamos para saber qué modulo cargar
-    if (BASE_PATH && path.startsWith(BASE_PATH)) {
-        path = path.replace(BASE_PATH, '');
-    }
-    
-    // Limpieza extra
-    if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1);
+    // Si la ruta está vacía, vamos al dashboard
     if (path === '') path = '/';
 
-    console.log("Ruta detectada:", path);
+    console.log("📍 Navegando a:", path);
 
-    // --- PROTECCIÓN DE SESIÓN ---
-    if (!user) {
-        // Si no hay usuario y no estamos en login, mandar a login
-        if (path !== '/' && path !== '/index.html') {
-            window.history.replaceState({}, '', BASE_PATH + '/');
-            path = '/';
-        }
+    // 2. Verificar Sesión con Firebase (AuthService ya tiene el estado guardado)
+    // Nota: La redirección inicial la manejamos en el evento onAuthStateChanged abajo
+    
+    // 3. Selección del Módulo
+    // Si estamos en login/register, renderizamos LoginModule directamente
+    if (path === '/login' || path === '/register') {
         contentDiv.innerHTML = await LoginModule.render();
         if (LoginModule.init) await LoginModule.init();
         return;
     }
 
-    // --- CARGA DE MÓDULO ---
-    const module = routes[path] || Dashboard;
+    // Si no es login, buscamos el módulo correspondiente
+    const module = routes[path] || DashboardModule;
 
-    // Renderizamos Layout + Módulo
+    // 4. Renderizado Seguro (Layout + Módulo)
     try {
-        // Pasamos el contenido del módulo al Layout
-        // Nota: Layout.render ahora espera HTML string, no el módulo en sí
         const moduleContent = await module.render();
         const pageTitle = path.replace('/', '').toUpperCase() || 'DASHBOARD';
         
+        // Aquí envolvemos el contenido en el Layout (Sidebar + Header)
         contentDiv.innerHTML = Layout.render(moduleContent, pageTitle);
         
-        // Inicializamos Layout (sidebar, logout) y luego el Módulo
+        // Inicializamos interactividad
         if (Layout.init) await Layout.init();
         if (module.init) await module.init();
 
     } catch (error) {
-        console.error("Error renderizando:", error);
-        contentDiv.innerHTML = "<h2>Error cargando la aplicación.</h2>";
+        console.error("❌ Error cargando módulo:", error);
+        contentDiv.innerHTML = `<div style="padding:20px; text-align:center;"><h2>Error cargando la página</h2><p>${error.message}</p></div>`;
     }
 };
 
-window.addEventListener('popstate', router);
-window.addEventListener('DOMContentLoaded', router);
+// --- INICIALIZACIÓN DE LA APP ---
+document.addEventListener('DOMContentLoaded', () => {
+    console.log("🚀 Iniciando Magic CRM...");
 
-// --- NAVEGACIÓN GLOBAL MEJORADA ---
-document.body.addEventListener('click', e => {
-    const link = e.target.matches('[data-link]') ? e.target : e.target.closest('[data-link]');
-    if (link) {
-        e.preventDefault();
-        const route = link.getAttribute('href'); // Es la ruta interna (ej: /leads)
-        
-        // Construimos la URL real (Base + Ruta)
-        const fullUrl = Config.getBasePath() + route;
-        
-        window.history.pushState({}, "", fullUrl);
-        router();
-    }
+    // Escuchamos cambios en la autenticación de Firebase
+    AuthService.onAuthStateChanged((user) => {
+        if (user) {
+            console.log("✅ Usuario detectado:", user.email);
+            // Si el usuario está en login, lo mandamos al dashboard
+            if (window.location.hash === '#/login' || window.location.hash === '' || !window.location.hash) {
+                window.location.hash = '#/dashboard';
+            }
+            // Ejecutamos el router
+            router();
+        } else {
+            console.log("⚠️ No hay sesión, redirigiendo a Login");
+            // Si no hay usuario, forzamos la ruta de login
+            window.location.hash = '#/login';
+            router();
+        }
+    });
+
+    // Escuchar cambios de navegación (Atrás/Adelante)
+    window.addEventListener('popstate', router);
+    window.addEventListener('hashchange', router);
 });
