@@ -1,8 +1,9 @@
-import { Layout } from '../components/Layout.js';
 import { PipelineService } from '../services/pipeline.service.js';
 import { Formatters } from '../utils/formatters.js';
 import { Store } from '../core/store.js';
 import { Router } from '../core/router.js';
+
+// ❌ AQUÍ BORRAMOS EL IMPORT DE LAYOUT
 
 export const PipelineModule = {
     draggedCardId: null,
@@ -29,11 +30,13 @@ export const PipelineModule = {
             </div>
         `;
         
-        return Layout.render(pageContent, 'Pipeline');
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.render()"
+        return pageContent;
     },
 
     init: async () => {
-        Layout.init();
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.init()"
+        
         const btnLogout = document.getElementById('btnLogout');
         if (btnLogout) btnLogout.addEventListener('click', () => { Store.setUser(null); Router.navigateTo('/'); });
 
@@ -112,7 +115,6 @@ export const PipelineModule = {
         } catch (e) { console.error(e); container.innerHTML = '<p>Error pipeline.</p>'; }
     },
 
-    // ... (La función enableDragAndDrop se mantiene EXACTAMENTE IGUAL que en la versión anterior para no romper el móvil)
     enableDragAndDrop: () => {
         const cards = document.querySelectorAll('.kanban-card');
         const columns = document.querySelectorAll('.kanban-column');
