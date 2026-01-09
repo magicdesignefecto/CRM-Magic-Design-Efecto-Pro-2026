@@ -1,10 +1,11 @@
-import { Layout } from '../components/Layout.js';
 import { Table } from '../components/Table.js';
 import { Modal } from '../components/Modal.js';
 import { ProjectsService } from '../services/projects.service.js';
 import { ClientsService } from '../services/clients.service.js'; // Para listar clientes
 import { SettingsService } from '../services/settings.service.js'; // Para servicios
 import { Formatters } from '../utils/formatters.js';
+
+// ❌ AQUÍ BORRAMOS EL IMPORT DE LAYOUT
 
 export const ProjectsModule = {
     render: async () => {
@@ -152,11 +153,14 @@ export const ProjectsModule = {
             ${modalHTML}
             ${manageModalHTML}
         `;
-        return Layout.render(pageContent, 'Proyectos');
+        
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.render()"
+        return pageContent;
     },
 
     init: async () => {
-        Layout.init();
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.init()"
+        
         Modal.initEvents('modalNewProject');
         Modal.initEvents('modalManageProject');
         await ProjectsModule.loadTable();
@@ -315,4 +319,5 @@ export const ProjectsModule = {
     destroy: () => {
         delete window.openTab; // Limpieza
     }
+
 };
