@@ -1,63 +1,83 @@
-// CLAVE ÚNICA PARA LA MEMORIA DEL NAVEGADOR
-const STORAGE_KEY = 'magic_crm_clients_data';
+import { db } from '../core/firebase-config.js';
+import { 
+    collection, 
+    addDoc, 
+    getDocs, 
+    doc, 
+    updateDoc, 
+    deleteDoc, 
+    getDoc, 
+    query, 
+    orderBy 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const COLLECTION_NAME = 'clients';
 
 export const ClientsService = {
-    // 1. OBTENER TODOS (Leemos la memoria)
+    // 1. OBTENER TODOS (Ordenados por fecha)
     getAll: async () => {
-        // Simulamos un pequeño retraso de red para que se vea el "Cargando..."
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        const storedData = localStorage.getItem(STORAGE_KEY);
-        return storedData ? JSON.parse(storedData) : [];
-    },
-
-    // 2. OBTENER UNO POR ID
-    getById: async (id) => {
-        const clients = await ClientsService.getAll();
-        return clients.find(c => c.id === id) || null;
-    },
-
-    // 3. CREAR NUEVO (Guardamos en memoria)
-    create: async (data) => {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simula guardado
-        
-        const clients = await ClientsService.getAll();
-        
-        const newClient = {
-            ...data,
-            id: crypto.randomUUID(), // Genera un ID único profesional
-            createdAt: new Date().toISOString(),
-            status: 'Activo' // Por defecto
-        };
-        
-        clients.push(newClient);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
-        
-        console.log("✅ Cliente guardado en LocalStorage:", newClient);
-        return newClient;
-    },
-
-    // 4. ACTUALIZAR EXISTENTE
-    update: async (id, data) => {
-        await new Promise(resolve => setTimeout(resolve, 400));
-        
-        const clients = await ClientsService.getAll();
-        const index = clients.findIndex(c => c.id === id);
-        
-        if (index !== -1) {
-            // Mantenemos el ID y fecha original, sobrescribimos el resto
-            clients[index] = { ...clients[index], ...data };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
-            return clients[index];
+        try {
+            const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+        } catch (error) {
+            console.error("Error obteniendo clientes:", error);
+            return [];
         }
-        return null;
     },
 
-    // 5. ELIMINAR (Opcional por ahora)
+    // 2. CREAR NUEVO
+    create: async (clientData) => {
+        try {
+            const newClient = {
+                ...clientData,
+                createdAt: new Date().toISOString(),
+                status: 'Activo'
+            };
+            const docRef = await addDoc(collection(db, COLLECTION_NAME), newClient);
+            console.log("✅ Cliente guardado con ID: ", docRef.id);
+            return { id: docRef.id, ...newClient };
+        } catch (error) {
+            console.error("Error guardando cliente:", error);
+            throw error;
+        }
+    },
+
+    // 3. OBTENER POR ID
+    getById: async (id) => {
+        try {
+            const docRef = doc(db, COLLECTION_NAME, id);
+            const docSnap = await getDoc(docRef);
+            return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+        } catch (error) {
+            console.error("Error buscando cliente:", error);
+            return null;
+        }
+    },
+
+    // 4. ACTUALIZAR
+    update: async (id, data) => {
+        try {
+            const docRef = doc(db, COLLECTION_NAME, id);
+            await updateDoc(docRef, data);
+            return { id, ...data };
+        } catch (error) {
+            console.error("Error actualizando cliente:", error);
+            throw error;
+        }
+    },
+
+    // 5. ELIMINAR (Opcional)
     delete: async (id) => {
-        let clients = await ClientsService.getAll();
-        clients = clients.filter(c => c.id !== id);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
-        return true;
+        try {
+            await deleteDoc(doc(db, COLLECTION_NAME, id));
+            return true;
+        } catch (error) {
+            console.error("Error eliminando cliente:", error);
+            return false;
+        }
     }
 };
