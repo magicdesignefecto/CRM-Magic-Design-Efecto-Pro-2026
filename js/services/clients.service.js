@@ -1,4 +1,4 @@
-import { db } from '../core/firebase-config.js';
+import { db, auth } from '../core/firebase-config.js'; // Importamos auth para saber quién es
 import { 
     collection, 
     addDoc, 
@@ -8,16 +8,26 @@ import {
     deleteDoc, 
     getDoc, 
     query, 
-    orderBy 
+    orderBy,
+    where // <--- Importante: Para filtrar
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const COLLECTION_NAME = 'clients';
 
 export const ClientsService = {
-    // 1. OBTENER TODOS (Ordenados por fecha)
+    // 1. OBTENER SOLO MIS CLIENTES
     getAll: async () => {
         try {
-            const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
+            const user = auth.currentUser;
+            if (!user) return []; // Si no hay usuario, no devolvemos nada
+
+            // La consulta mágica: "Donde userId sea igual a MI id"
+            const q = query(
+                collection(db, COLLECTION_NAME), 
+                where("userId", "==", user.uid),
+                orderBy("createdAt", "desc")
+            );
+
             const querySnapshot = await getDocs(q);
             return querySnapshot.docs.map(doc => ({
                 id: doc.id,
@@ -25,20 +35,26 @@ export const ClientsService = {
             }));
         } catch (error) {
             console.error("Error obteniendo clientes:", error);
+            // Si falla por falta de índice, avisa en consola
             return [];
         }
     },
 
-    // 2. CREAR NUEVO
+    // 2. CREAR CLIENTE (Con mi firma)
     create: async (clientData) => {
         try {
+            const user = auth.currentUser;
+            if (!user) throw new Error("Debes estar logueado");
+
             const newClient = {
                 ...clientData,
+                userId: user.uid, // <--- AQUÍ ETIQUETAMOS EL DATO
+                createdBy: user.displayName || user.email, // Para saber quién lo creó
                 createdAt: new Date().toISOString(),
                 status: 'Activo'
             };
+            
             const docRef = await addDoc(collection(db, COLLECTION_NAME), newClient);
-            console.log("✅ Cliente guardado con ID: ", docRef.id);
             return { id: docRef.id, ...newClient };
         } catch (error) {
             console.error("Error guardando cliente:", error);
@@ -46,38 +62,37 @@ export const ClientsService = {
         }
     },
 
-    // 3. OBTENER POR ID
+    // 3. OBTENER POR ID (Seguridad extra)
     getById: async (id) => {
         try {
             const docRef = doc(db, COLLECTION_NAME, id);
             const docSnap = await getDoc(docRef);
-            return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+            
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                // Opcional: Verificar si el dato es mío
+                // if (data.userId !== auth.currentUser.uid) return null;
+                return { id: docSnap.id, ...data };
+            }
+            return null;
         } catch (error) {
             console.error("Error buscando cliente:", error);
             return null;
         }
     },
 
-    // 4. ACTUALIZAR
     update: async (id, data) => {
         try {
             const docRef = doc(db, COLLECTION_NAME, id);
             await updateDoc(docRef, data);
             return { id, ...data };
-        } catch (error) {
-            console.error("Error actualizando cliente:", error);
-            throw error;
-        }
+        } catch (error) { throw error; }
     },
 
-    // 5. ELIMINAR (Opcional)
     delete: async (id) => {
         try {
             await deleteDoc(doc(db, COLLECTION_NAME, id));
             return true;
-        } catch (error) {
-            console.error("Error eliminando cliente:", error);
-            return false;
-        }
+        } catch (error) { return false; }
     }
 };
