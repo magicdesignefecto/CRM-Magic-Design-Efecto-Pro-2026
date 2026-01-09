@@ -1,23 +1,23 @@
 // js/core/firebase-config.js
 
-// Usamos las versiones Web (CDN) compatibles con módulos
+// Mantén estas importaciones (CDN) para que funcione directo en el navegador
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Tu configuración (La que copiaste)
+// --- TU NUEVA CONFIGURACIÓN (crm-exito) ---
 const firebaseConfig = {
-  apiKey: "AIzaSyCD0BTuegpTrLdQQ_y-RujEJ-QNRSAddpE",
-  authDomain: "magic-crm-f8b74.firebaseapp.com",
-  projectId: "magic-crm-f8b74",
-  storageBucket: "magic-crm-f8b74.firebasestorage.app",
-  messagingSenderId: "268002769612",
-  appId: "1:268002769612:web:4a6d2f998d487af8792069"
+  apiKey: "AIzaSyAY2Yq3tN7_Lb01GKogqUSxuZvA_TEBSyk",
+  authDomain: "crm-exito.firebaseapp.com",
+  projectId: "crm-exito",
+  storageBucket: "crm-exito.firebasestorage.app",
+  messagingSenderId: "737591479638",
+  appId: "1:737591479638:web:27b68aa687811d62b41af7"
 };
 
 // Inicializar Firebase
 const app = initializeApp(firebaseConfig);
 
-// Exportamos las herramientas para usarlas en los servicios
+// Exportamos las herramientas para que los otros archivos las usen
 export const auth = getAuth(app);
 export const db = getFirestore(app);
