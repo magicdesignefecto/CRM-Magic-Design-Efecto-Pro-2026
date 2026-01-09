@@ -1,7 +1,5 @@
 import { Store } from '../core/store.js';
 import { Router } from '../core/router.js';
-// BORRADO: import { TasksService } ... (Esto bloqueaba la entrada porque el archivo no existe)
-// BORRADO: import { Formatters } ... (Esto también bloqueaba)
 
 export const Layout = {
     render: (content, title = 'CRM') => {
@@ -105,7 +103,13 @@ export const Layout = {
             * { box-sizing: border-box; }
             body { margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; background-color: #F8F9FA; }
             
-            .app-layout { display: flex; width: 100vw; height: 100vh; }
+            /* FIX MÓVIL: Altura dinámica para evitar cortes */
+            .app-layout { 
+                display: flex; 
+                width: 100vw; 
+                height: 100vh; 
+                height: 100dvh; /* Soporte mejorado para móviles */
+            }
 
             /* ESTILO BOTÓN LOGOUT */
             .btn-logout {
@@ -174,8 +178,14 @@ export const Layout = {
             .menu-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0; color: #64748B; }
             .page-title { margin: 0; font-size: 1.25rem; font-weight: 700; color: #1E293B; white-space: nowrap; }
             
-            /* SCROLL AREA */
-            .content-scroll-area { flex: 1; overflow-y: auto; overflow-x: hidden; }
+            /* SCROLL AREA FIX MÓVIL */
+            .content-scroll-area { 
+                flex: 1; 
+                overflow-y: auto; 
+                overflow-x: hidden; 
+                padding-bottom: 200px; /* <--- MÁS ESPACIO PARA QUE NO SE CORTE EN EL CELULAR */
+                -webkit-overflow-scrolling: touch; /* <--- SCROLL SUAVE EN IPHONE/ANDROID */
+            }
             .content-container { padding: 24px; max-width: 100%; margin: 0 auto; width: 100%; }
 
             /* MÓVIL */
