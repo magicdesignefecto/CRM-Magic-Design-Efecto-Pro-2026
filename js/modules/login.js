@@ -21,7 +21,6 @@ export const LoginModule = {
                 .input-label { display: block; font-size: 0.8rem; font-weight: 600; color: #475569; margin-bottom: 5px; }
                 .auth-input { width: 100%; padding: 12px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box; }
                 
-                /* PASSWORD EYE */
                 .password-wrapper { position: relative; }
                 .toggle-pass { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #64748B; cursor: pointer; }
                 
@@ -29,7 +28,6 @@ export const LoginModule = {
                 .btn-auth:hover { background: #1D4ED8; }
                 
                 .forgot-link { display: block; text-align: right; margin-top: 10px; color: #2563EB; font-size: 0.85rem; text-decoration: none; cursor: pointer; }
-                
                 .hidden { display: none; }
             </style>
             
@@ -74,7 +72,7 @@ export const LoginModule = {
                             </div>
                             <div class="input-group">
                                 <label class="input-label">WhatsApp</label>
-                                <input type="tel" id="regPhone" class="auth-input" placeholder="+591...">
+                                <input type="tel" id="regPhone" class="auth-input" placeholder="+591..." required>
                             </div>
                             <div class="input-group">
                                 <label class="input-label">Cargo</label>
@@ -101,13 +99,11 @@ export const LoginModule = {
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
 
-        // Función global para ver contraseña
         window.toggleVisibility = (id) => {
             const input = document.getElementById(id);
             input.type = input.type === 'password' ? 'text' : 'password';
         };
 
-        // Cambiar pestañas
         if(tabLogin && tabRegister) {
             tabLogin.addEventListener('click', () => {
                 tabLogin.classList.add('active');
@@ -124,7 +120,7 @@ export const LoginModule = {
             });
         }
 
-        // Lógica LOGIN
+        // --- LÓGICA DE LOGIN CON ALERTAS PRO ---
         if (loginForm) {
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -137,53 +133,113 @@ export const LoginModule = {
                     const pass = document.getElementById('loginPass').value;
                     
                     await AuthService.login(email, pass);
-                    // Redirigir con Hash para evitar errores
+                    
+                    // Alerta de éxito sutil
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true,
+                        didOpen: (toast) => {
+                            toast.addEventListener('mouseenter', Swal.stopTimer)
+                            toast.addEventListener('mouseleave', Swal.resumeTimer)
+                        }
+                    });
+                    
+                    Toast.fire({
+                        icon: 'success',
+                        title: '¡Bienvenido de nuevo!'
+                    });
+
                     window.location.hash = '#/dashboard';
                 } catch (error) {
-                    alert("Error: Credenciales incorrectas.");
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de Acceso',
+                        text: 'El correo o la contraseña son incorrectos.',
+                        confirmButtonColor: '#2563EB'
+                    });
                     btn.innerText = 'Ingresar';
                     btn.disabled = false;
                 }
             });
         }
 
-        // Lógica REGISTRO
+        // --- LÓGICA DE REGISTRO CON WHATSAPP ---
         if (registerForm) {
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const btn = registerForm.querySelector('button');
-                btn.innerText = 'Creando...';
+                btn.innerText = 'Registrando...';
                 btn.disabled = true;
 
                 try {
                     const name = document.getElementById('regName').value;
                     const email = document.getElementById('regEmail').value;
                     const pass = document.getElementById('regPass').value;
-                    // Nota: Phone y Role los guardaremos en base de datos después, 
-                    // por ahora registramos Auth y Nombre para que funcione el acceso.
+                    const phone = document.getElementById('regPhone').value;
+                    const role = document.getElementById('regRole').value;
                     
+                    // 1. Crear usuario en Firebase
                     await AuthService.register(email, pass, name);
-                    alert("¡Cuenta creada! Bienvenido.");
+
+                    // 2. Preparar mensaje de WhatsApp para TI
+                    const adminPhone = "59160000000"; // <--- ¡CAMBIA ESTO POR TU NÚMERO REAL!
+                    const text = `Hola Diego, soy *${name}*.%0A%0AAcabo de registrarme en Magic CRM.%0A📧 Correo: ${email}%0A📱 Celular: ${phone}%0A💼 Cargo: ${role}%0A%0ASolicito activación. Gracias.`;
+                    const waLink = `https://wa.me/${adminPhone}?text=${text}`;
+
+                    // 3. Alerta Pro con botón de WhatsApp
+                    await Swal.fire({
+                        title: '¡Cuenta Creada!',
+                        text: "Para activar tu cuenta, notifica al administrador por WhatsApp.",
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonColor: '#25D366',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: '<i class="fab fa-whatsapp"></i> Notificar a Diego',
+                        cancelButtonText: 'Ir al Dashboard'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.open(waLink, '_blank');
+                        }
+                    });
+
                     window.location.hash = '#/dashboard';
+
                 } catch (error) {
-                    alert("Error al registrar: " + error.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al registrar',
+                        text: error.message,
+                        confirmButtonColor: '#2563EB'
+                    });
                     btn.innerText = 'Registrarse';
                     btn.disabled = false;
                 }
             });
         }
 
-        // Recuperar Contraseña
+        // Recuperar Contraseña Pro
         const btnForgot = document.getElementById('btnForgot');
         if(btnForgot) {
             btnForgot.addEventListener('click', async () => {
-                const email = prompt("Ingresa tu correo para recuperar contraseña:");
-                if(email) {
+                const { value: email } = await Swal.fire({
+                    title: 'Recuperar Contraseña',
+                    input: 'email',
+                    inputLabel: 'Ingresa tu correo registrado',
+                    inputPlaceholder: 'tu@correo.com',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2563EB',
+                    confirmButtonText: 'Enviar enlace'
+                });
+
+                if (email) {
                     try {
                         await AuthService.resetPassword(email);
-                        alert("Revisa tu correo, te enviamos un enlace.");
+                        Swal.fire('¡Enviado!', 'Revisa tu correo para restablecer tu contraseña.', 'success');
                     } catch (error) {
-                        alert("Error: " + error.message);
+                        Swal.fire('Error', error.message, 'error');
                     }
                 }
             });
