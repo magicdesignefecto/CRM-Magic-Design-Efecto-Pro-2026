@@ -1,8 +1,9 @@
-import { Layout } from '../components/Layout.js';
 import { Table } from '../components/Table.js';
 import { Modal } from '../components/Modal.js';
 import { ClientsService } from '../services/clients.service.js';
 import { Router } from '../core/router.js';
+
+// ❌ AQUÍ BORRAMOS EL IMPORT DE LAYOUT
 
 export const ClientsModule = {
     render: async () => {
@@ -104,11 +105,14 @@ export const ClientsModule = {
             
             ${modalHTML}
         `;
-        return Layout.render(pageContent, 'Clientes');
+        
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.render()"
+        return pageContent;
     },
 
     init: async () => {
-        Layout.init();
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.init()"
+        
         Modal.initEvents('modalClient');
         await ClientsModule.loadTable();
 
@@ -237,7 +241,7 @@ export const ClientsModule = {
                         const box = document.getElementById('internationalFields');
 
                         if(client.isInternational) {
-                            // Si es internacional, ponemos el select en "Otro País" (o Global si tuviéramos lógica para diferenciar)
+                            // Si es internacional, ponemos el select en "Otro País"
                             // y rellenamos los campos manuales
                             sel.value = 'Otro País'; 
                             box.style.display = 'block';
