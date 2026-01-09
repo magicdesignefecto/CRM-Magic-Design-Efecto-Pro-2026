@@ -1,9 +1,10 @@
-import { Layout } from '../components/Layout.js';
 import { Table } from '../components/Table.js';
 import { Modal } from '../components/Modal.js';
 import { QuotesService } from '../services/quotes.service.js';
 import { SettingsService } from '../services/settings.service.js'; // Conexión a Configuración Global
 import { Formatters } from '../utils/formatters.js';
+
+// ❌ AQUÍ BORRAMOS EL IMPORT DE LAYOUT
 
 export const QuotesModule = {
     render: async () => {
@@ -117,11 +118,14 @@ export const QuotesModule = {
             
             ${modalHTML}
         `;
-        return Layout.render(pageContent, 'Cotizaciones');
+        
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.render()"
+        return pageContent;
     },
 
     init: async () => {
-        Layout.init();
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.init()"
+        
         Modal.initEvents('modalNewQuote');
         await QuotesModule.loadTable();
 
