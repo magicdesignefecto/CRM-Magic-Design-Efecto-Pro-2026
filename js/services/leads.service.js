@@ -1,61 +1,79 @@
-// CLAVE ÚNICA PARA LA MEMORIA DEL NAVEGADOR
-const STORAGE_KEY = 'magic_crm_leads_data';
+import { db } from '../core/firebase-config.js';
+import { 
+    collection, 
+    addDoc, 
+    getDocs, 
+    doc, 
+    updateDoc, 
+    deleteDoc, 
+    getDoc, 
+    query, 
+    orderBy 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const COLLECTION_NAME = 'leads';
 
 export const LeadsService = {
-    // 1. OBTENER TODOS
     getAll: async () => {
-        // Simulamos retardo de red
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        const storedData = localStorage.getItem(STORAGE_KEY);
-        return storedData ? JSON.parse(storedData) : [];
-    },
-
-    // 2. CREAR NUEVO
-    create: async (data) => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const leads = await LeadsService.getAll();
-        
-        const newLead = {
-            ...data,
-            id: crypto.randomUUID(), // ID único profesional
-            createdAt: new Date().toISOString(),
-            // Si no viene estado, ponemos 'Nuevo' por defecto
-            status: data.status || 'Nuevo' 
-        };
-        
-        leads.push(newLead);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
-        
-        console.log("✅ Lead guardado:", newLead);
-        return newLead;
-    },
-
-    // 3. OBTENER POR ID (Para ver detalle)
-    getById: async (id) => {
-        const leads = await LeadsService.getAll();
-        return leads.find(l => l.id === id) || null;
-    },
-
-    // 4. ACTUALIZAR (Opcional, pero útil si editas luego)
-    update: async (id, data) => {
-        const leads = await LeadsService.getAll();
-        const index = leads.findIndex(l => l.id === id);
-        
-        if (index !== -1) {
-            leads[index] = { ...leads[index], ...data };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
-            return leads[index];
+        try {
+            // Ordenamos por fecha de creación descendente (lo más nuevo primero)
+            const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+        } catch (error) {
+            console.error("Error obteniendo leads:", error);
+            return [];
         }
-        return null;
     },
 
-    // 5. ELIMINAR
+    create: async (leadData) => {
+        try {
+            const newLead = {
+                ...leadData,
+                createdAt: new Date().toISOString()
+                // status viene del formulario, o 'Nuevo' por defecto si no lo trae
+            };
+            const docRef = await addDoc(collection(db, COLLECTION_NAME), newLead);
+            console.log("✅ Lead guardado con ID: ", docRef.id);
+            return { id: docRef.id, ...newLead };
+        } catch (error) {
+            console.error("Error creando lead:", error);
+            throw error;
+        }
+    },
+
+    getById: async (id) => {
+        try {
+            const docRef = doc(db, COLLECTION_NAME, id);
+            const docSnap = await getDoc(docRef);
+            return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
+        } catch (error) {
+            console.error("Error buscando lead:", error);
+            return null;
+        }
+    },
+
+    update: async (id, data) => {
+        try {
+            const docRef = doc(db, COLLECTION_NAME, id);
+            await updateDoc(docRef, data);
+            return { id, ...data };
+        } catch (error) {
+            console.error("Error actualizando lead:", error);
+            throw error;
+        }
+    },
+    
     delete: async (id) => {
-        let leads = await LeadsService.getAll();
-        leads = leads.filter(l => l.id !== id);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
-        return true;
+        try {
+            await deleteDoc(doc(db, COLLECTION_NAME, id));
+            return true;
+        } catch (error) {
+            console.error("Error eliminando lead:", error);
+            return false;
+        }
     }
 };
