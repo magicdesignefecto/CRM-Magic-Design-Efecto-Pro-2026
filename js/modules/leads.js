@@ -1,4 +1,3 @@
-import { Layout } from '../components/Layout.js';
 import { Table } from '../components/Table.js';
 import { Modal } from '../components/Modal.js';
 import { LeadsService } from '../services/leads.service.js';
@@ -6,6 +5,8 @@ import { SettingsService } from '../services/settings.service.js';
 import { Formatters } from '../utils/formatters.js';
 import { Store } from '../core/store.js';
 import { Router } from '../core/router.js';
+
+// ❌ AQUÍ BORRAMOS EL IMPORT DE LAYOUT
 
 export const LeadsModule = {
     render: async () => {
@@ -200,11 +201,14 @@ export const LeadsModule = {
             <div id="leadsTableContainer" style="overflow-x: auto;"><div class="loader"></div></div>
             ${modalHTML} ${viewModalHTML}
         `;
-        return Layout.render(pageContent, 'Leads');
+        
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.render()"
+        return pageContent;
     },
 
     init: async () => {
-        Layout.init();
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.init()"
+        
         Modal.initEvents('modalNewLead');
         Modal.initEvents('modalViewLead');
         await LeadsModule.loadTable();
@@ -340,7 +344,8 @@ export const LeadsModule = {
             });
         }
     },
-    loadTable: async () => { /* ... (Igual que antes) ... */ 
+    
+    loadTable: async () => {
         const container = document.getElementById('leadsTableContainer');
         try {
             const leads = await LeadsService.getAll();
@@ -357,7 +362,8 @@ export const LeadsModule = {
             });
         } catch (e) { container.innerHTML = '<p>Error</p>'; }
     },
-    viewLead: async (id) => { /* ... (Igual que antes) ... */ 
+    
+    viewLead: async (id) => {
         const lead = await LeadsService.getById(id);
         if(!lead) return;
         const container = document.getElementById('viewLeadContent');
