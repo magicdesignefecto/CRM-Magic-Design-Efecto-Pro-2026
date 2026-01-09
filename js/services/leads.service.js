@@ -1,4 +1,4 @@
-import { db } from '../core/firebase-config.js';
+import { db, auth } from '../core/firebase-config.js';
 import { 
     collection, 
     addDoc, 
@@ -8,7 +8,8 @@ import {
     deleteDoc, 
     getDoc, 
     query, 
-    orderBy 
+    orderBy,
+    where 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const COLLECTION_NAME = 'leads';
@@ -16,8 +17,16 @@ const COLLECTION_NAME = 'leads';
 export const LeadsService = {
     getAll: async () => {
         try {
-            // Ordenamos por fecha de creación descendente (lo más nuevo primero)
-            const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"));
+            const user = auth.currentUser;
+            if (!user) return [];
+
+            // Solo mis leads
+            const q = query(
+                collection(db, COLLECTION_NAME), 
+                where("userId", "==", user.uid),
+                orderBy("createdAt", "desc")
+            );
+            
             const querySnapshot = await getDocs(q);
             return querySnapshot.docs.map(doc => ({
                 id: doc.id,
@@ -31,13 +40,16 @@ export const LeadsService = {
 
     create: async (leadData) => {
         try {
+            const user = auth.currentUser;
+            if (!user) throw new Error("No autenticado");
+
             const newLead = {
                 ...leadData,
+                userId: user.uid, // <--- ETIQUETA DE PROPIEDAD
+                createdBy: user.displayName || user.email,
                 createdAt: new Date().toISOString()
-                // status viene del formulario, o 'Nuevo' por defecto si no lo trae
             };
             const docRef = await addDoc(collection(db, COLLECTION_NAME), newLead);
-            console.log("✅ Lead guardado con ID: ", docRef.id);
             return { id: docRef.id, ...newLead };
         } catch (error) {
             console.error("Error creando lead:", error);
@@ -50,10 +62,7 @@ export const LeadsService = {
             const docRef = doc(db, COLLECTION_NAME, id);
             const docSnap = await getDoc(docRef);
             return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
-        } catch (error) {
-            console.error("Error buscando lead:", error);
-            return null;
-        }
+        } catch (error) { return null; }
     },
 
     update: async (id, data) => {
@@ -61,19 +70,13 @@ export const LeadsService = {
             const docRef = doc(db, COLLECTION_NAME, id);
             await updateDoc(docRef, data);
             return { id, ...data };
-        } catch (error) {
-            console.error("Error actualizando lead:", error);
-            throw error;
-        }
+        } catch (error) { throw error; }
     },
     
     delete: async (id) => {
         try {
             await deleteDoc(doc(db, COLLECTION_NAME, id));
             return true;
-        } catch (error) {
-            console.error("Error eliminando lead:", error);
-            return false;
-        }
+        } catch (error) { return false; }
     }
 };
