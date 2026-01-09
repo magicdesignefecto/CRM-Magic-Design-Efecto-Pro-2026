@@ -1,11 +1,11 @@
 // js/core/firebase-config.js
 
-// Mantén estas importaciones (CDN) para que funcione directo en el navegador
+// Importaciones CDN (NO borres esto)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// --- TU NUEVA CONFIGURACIÓN (crm-exito) ---
+// TU CONFIGURACIÓN NUEVA (crm-exito)
 const firebaseConfig = {
   apiKey: "AIzaSyAY2Yq3tN7_Lb01GKogqUSxuZvA_TEBSyk",
   authDomain: "crm-exito.firebaseapp.com",
@@ -15,9 +15,9 @@ const firebaseConfig = {
   appId: "1:737591479638:web:27b68aa687811d62b41af7"
 };
 
-// Inicializar Firebase
+// Inicializar
 const app = initializeApp(firebaseConfig);
 
-// Exportamos las herramientas para que los otros archivos las usen
+// Exportar
 export const auth = getAuth(app);
 export const db = getFirestore(app);
