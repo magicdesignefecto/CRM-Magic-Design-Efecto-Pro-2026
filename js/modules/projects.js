@@ -1,24 +1,24 @@
 import { Table } from '../components/Table.js';
 import { Modal } from '../components/Modal.js';
 import { ProjectsService } from '../services/projects.service.js';
-import { ClientsService } from '../services/clients.service.js'; // Para listar clientes
-import { SettingsService } from '../services/settings.service.js'; // Para servicios
+import { ClientsService } from '../services/clients.service.js'; // To list clients
+import { SettingsService } from '../services/settings.service.js'; // To list services
 import { Formatters } from '../utils/formatters.js';
 
-// ❌ AQUÍ BORRAMOS EL IMPORT DE LAYOUT
+// ❌ REMOVED IMPORT OF LAYOUT
 
 export const ProjectsModule = {
     render: async () => {
-        // 1. Cargar datos necesarios (Clientes y Servicios Globales)
+        // 1. Load necessary data (Clients and Global Services)
         const [clients, availableServices] = await Promise.all([
             ClientsService.getAll(),
             SettingsService.getServices()
         ]);
 
-        // Generar opciones de Clientes
+        // Generate Client options
         const clientOptions = clients.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
 
-        // Generar checkboxes de Servicios (Dropdown)
+        // Generate Service checkboxes (Dropdown)
         const servicesCheckboxesHTML = availableServices.map(svc => `
             <label class="service-option" style="display:flex;">
                 <input type="checkbox" class="service-chk" value="${svc}">
@@ -33,7 +33,7 @@ export const ProjectsModule = {
                 .input-row { display: flex; gap: 10px; }
                 .form-input, .form-select { width: 100%; padding: 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 0.95rem; box-sizing: border-box; background:white; }
                 
-                /* Estilos Dropdown Servicios (Reutilizado) */
+                /* Services Dropdown Styles (Reused) */
                 .dropdown-wrapper { position: relative; width: 100%; }
                 .dropdown-trigger { width: 100%; padding: 10px; background: white; border: 1px solid #D1D5DB; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 0.95rem; color: #374151; }
                 .dropdown-content { display: none; position: absolute; top: 105%; left: 0; right: 0; background: white; border: 1px solid #D1D5DB; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); z-index: 100; padding: 10px; }
@@ -42,7 +42,7 @@ export const ProjectsModule = {
                 .service-option { padding: 8px; border-radius: 4px; cursor: pointer; transition: background 0.1s; }
                 .service-option:hover { background: #F3F4F6; }
 
-                /* Tabs de Gestión */
+                /* Management Tabs */
                 .tabs-header { display: flex; border-bottom: 1px solid #E5E7EB; margin-bottom: 20px; }
                 .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; color: #64748B; font-weight: 600; border-bottom: 2px solid transparent; }
                 .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
@@ -50,7 +50,7 @@ export const ProjectsModule = {
                 .tab-content.active { display: block; animation: fadeIn 0.3s; }
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-                /* Finanzas */
+                /* Finances */
                 .finance-card { background: #F8FAFC; border: 1px solid #E2E8F0; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
                 .finance-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9rem; }
                 .finance-total { border-top: 1px dashed #CBD5E1; padding-top: 10px; margin-top: 10px; font-weight: 700; font-size: 1.1rem; display: flex; justify-content: space-between; }
@@ -132,9 +132,9 @@ export const ProjectsModule = {
             </form>
         `;
 
-        // Modal de Creación
+        // Creation Modal
         const modalHTML = Modal.render('Nuevo Proyecto', formHTML, 'modalNewProject');
-        // Modal de Gestión (Vacio por ahora, se llena dinámicamente)
+        // Management Modal (Empty for now, filled dynamically)
         const manageModalHTML = Modal.render('Gestión de Proyecto', '<div id="manageProjectContent"></div>', 'modalManageProject');
 
         const pageContent = `
@@ -154,12 +154,12 @@ export const ProjectsModule = {
             ${manageModalHTML}
         `;
         
-        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.render()"
+        // ❌ REMOVED Layout.render() WRAPPER
         return pageContent;
     },
 
     init: async () => {
-        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.init()"
+        // ❌ REMOVED Layout.init() CALL
         
         Modal.initEvents('modalNewProject');
         Modal.initEvents('modalManageProject');
@@ -167,7 +167,7 @@ export const ProjectsModule = {
 
         const btnOpen = document.getElementById('btnOpenProjectModal');
         if(btnOpen) btnOpen.addEventListener('click', () => {
-            // Pre-seleccionar fechas hoy
+            // Pre-select today's dates
             const d = new Date();
             const dateStr = d.toISOString().split('T')[0];
             const startIn = document.querySelector('input[name="startDate"]');
@@ -175,7 +175,7 @@ export const ProjectsModule = {
             Modal.open('modalNewProject');
         });
 
-        // --- Lógica Dropdown Servicios (Igual a Leads/Quotes) ---
+        // --- Dropdown Logic Services (Same as Leads/Quotes) ---
         const trigger = document.getElementById('projServicesTrigger');
         const content = document.getElementById('projServicesContent');
         const list = document.getElementById('projServicesList');
@@ -187,18 +187,18 @@ export const ProjectsModule = {
                 const count = list.querySelectorAll('.service-chk:checked').length;
                 text.innerText = count > 0 ? `${count} Servicios seleccionados` : "-- Seleccionar Servicios --";
             });
-            // Cerrar al clic fuera
+            // Close on outside click
             document.addEventListener('click', (e) => {
                 if(!content.contains(e.target) && !trigger.contains(e.target)) content.classList.remove('active');
             });
         }
 
-        // Submit Crear Proyecto
+        // Submit Create Project
         const form = document.getElementById('createProjectForm');
         if(form) {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                // Aquí irá la lógica de guardado a Firebase
+                // Here will go the save logic to Firebase
                 alert('Guardado simulado. Esperando backend.');
                 Modal.close('modalNewProject');
             });
@@ -206,12 +206,12 @@ export const ProjectsModule = {
     },
 
     loadTable: async () => {
-        // Por ahora vacío hasta tener Firebase
+        // Empty for now until Firebase is ready
     },
 
-    // --- LÓGICA DE GESTIÓN (TABS) ---
+    // --- MANAGEMENT LOGIC (TABS) ---
     manageProject: async (id) => {
-        // Simulamos obtener el proyecto completo (esto vendrá de Firebase)
+        // Simulate fetching the full project (this will come from Firebase)
         const project = { 
             id: id, 
             name: "Proyecto Demo", 
@@ -222,13 +222,13 @@ export const ProjectsModule = {
             endDate: '2026-02-01',
             objective: "Desarrollar la nueva plataforma de ecommerce.",
             services: ["Diseño Web", "SEO"],
-            tasks: [], // Tareas vacías inicialmente
-            costs: 1200 // Costos simulados
+            tasks: [], // Empty tasks initially
+            costs: 1200 // Simulated costs
         };
 
         const container = document.getElementById('manageProjectContent');
         
-        // Renderizamos las pestañas
+        // Render tabs
         container.innerHTML = `
             <div style="margin-bottom:15px;">
                 <h3 style="margin:0; color:var(--primary);">${project.name}</h3>
@@ -304,12 +304,12 @@ export const ProjectsModule = {
             </div>
         `;
         
-        // Exponer función global para tabs (truco rápido para SPA)
+        // Expose global function for tabs (quick trick for SPA)
         window.openTab = (tabId) => {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
-            // Activar botón visualmente (busca por texto o index, simplificado aquí)
+            // Visually activate button (find by text or index, simplified here)
             event.target.classList.add('active');
         };
 
@@ -317,7 +317,7 @@ export const ProjectsModule = {
     },
 
     destroy: () => {
-        delete window.openTab; // Limpieza
+        delete window.openTab; // Cleanup
     }
 
 };
