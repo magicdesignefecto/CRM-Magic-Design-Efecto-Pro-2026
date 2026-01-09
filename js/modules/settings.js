@@ -1,7 +1,8 @@
-import { Layout } from '../components/Layout.js';
 import { SettingsService } from '../services/settings.service.js';
 import { ClientsService } from '../services/clients.service.js';
 import { Formatters } from '../utils/formatters.js';
+
+// ❌ AQUÍ BORRAMOS EL IMPORT DE LAYOUT
 
 export const SettingsModule = {
     render: async () => {
@@ -52,11 +53,14 @@ export const SettingsModule = {
                 </div>
             </div>
         `;
-        return Layout.render(content, 'Configuración');
+        
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.render()"
+        return content;
     },
 
     init: async () => {
-        Layout.init();
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.init()"
+        
         await SettingsModule.loadServices();
 
         const form = document.getElementById('addServiceForm');
