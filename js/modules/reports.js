@@ -1,6 +1,7 @@
-import { Layout } from '../components/Layout.js';
 import { ProjectsService } from '../services/projects.service.js';
 import { Formatters } from '../utils/formatters.js';
+
+// ❌ AQUÍ BORRAMOS EL IMPORT DE LAYOUT
 
 export const ReportsModule = {
     render: async () => {
@@ -39,22 +40,22 @@ export const ReportsModule = {
                 </div>
             </div>
         `;
-        return Layout.render(content, 'Reportes');
+        
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.render()"
+        return content;
     },
 
     init: async () => {
-        Layout.init();
+        // ❌ CAMBIO IMPORTANTE: Quitamos "Layout.init()"
         
-        // 1. Obtener Datos Reales (Ahora vendrá vacío hasta backend)
+        // 1. Obtener Datos Reales
         const projects = await ProjectsService.getAll();
 
         let totalSales = 0;
         let totalCosts = 0;
 
-        // 2. Calcular Totales (Moneda base USD simplificada por ahora o mixta)
+        // 2. Calcular Totales
         projects.forEach(p => {
-            // Nota: En un sistema real multimoneda, aquí se convertiría a una moneda base.
-            // Por ahora sumamos valores nominales para mantener la lógica lista.
             totalSales += Number(p.budget || 0);
             totalCosts += Number(p.costs || 0);
         });
@@ -62,33 +63,41 @@ export const ReportsModule = {
         const profit = totalSales - totalCosts;
 
         // 3. Renderizar KPIs
-        document.getElementById('kpiSales').innerText = Formatters.toCurrency(totalSales, 'USD');
-        document.getElementById('kpiCosts').innerText = Formatters.toCurrency(totalCosts, 'USD');
-        const profitEl = document.getElementById('kpiProfit');
-        profitEl.innerText = Formatters.toCurrency(profit, 'USD');
-        profitEl.style.color = profit >= 0 ? '#10B981' : '#EF4444';
+        const kpiSales = document.getElementById('kpiSales');
+        const kpiCosts = document.getElementById('kpiCosts');
+        const kpiProfit = document.getElementById('kpiProfit');
+
+        if(kpiSales) kpiSales.innerText = Formatters.toCurrency(totalSales, 'USD');
+        if(kpiCosts) kpiCosts.innerText = Formatters.toCurrency(totalCosts, 'USD');
+        
+        if(kpiProfit) {
+            kpiProfit.innerText = Formatters.toCurrency(profit, 'USD');
+            kpiProfit.style.color = profit >= 0 ? '#10B981' : '#EF4444';
+        }
 
         // 4. Renderizar Lista de Proyectos (Barras)
         const listContainer = document.getElementById('projectsListReport');
         
-        if(projects.length === 0) {
-            listContainer.innerHTML = '<p style="text-align:center; color:#999;">No hay datos financieros para mostrar.</p>';
-        } else {
-            listContainer.innerHTML = projects.map(p => {
-                const pProfit = (p.budget || 0) - (p.costs || 0);
-                const percent = p.budget > 0 ? Math.round((pProfit / p.budget) * 100) : 0;
-                const color = percent > 30 ? '#10B981' : (percent > 0 ? '#F59E0B' : '#EF4444');
-                
-                return `
-                    <div style="display:flex; align-items:center; gap:10px; font-size:0.9rem;">
-                        <div style="width:30%; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.name}</div>
-                        <div style="flex:1; background:#F1F5F9; height:8px; border-radius:4px; overflow:hidden;">
-                            <div style="width:${Math.max(0, percent)}%; background:${color}; height:100%;"></div>
+        if(listContainer) {
+            if(projects.length === 0) {
+                listContainer.innerHTML = '<p style="text-align:center; color:#999;">No hay datos financieros para mostrar.</p>';
+            } else {
+                listContainer.innerHTML = projects.map(p => {
+                    const pProfit = (p.budget || 0) - (p.costs || 0);
+                    const percent = p.budget > 0 ? Math.round((pProfit / p.budget) * 100) : 0;
+                    const color = percent > 30 ? '#10B981' : (percent > 0 ? '#F59E0B' : '#EF4444');
+                    
+                    return `
+                        <div style="display:flex; align-items:center; gap:10px; font-size:0.9rem;">
+                            <div style="width:30%; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.name}</div>
+                            <div style="flex:1; background:#F1F5F9; height:8px; border-radius:4px; overflow:hidden;">
+                                <div style="width:${Math.max(0, percent)}%; background:${color}; height:100%;"></div>
+                            </div>
+                            <div style="width:20%; text-align:right; font-weight:700; color:${color};">${percent}%</div>
                         </div>
-                        <div style="width:20%; text-align:right; font-weight:700; color:${color};">${percent}%</div>
-                    </div>
-                `;
-            }).join('');
+                    `;
+                }).join('');
+            }
         }
     },
 
