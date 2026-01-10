@@ -121,7 +121,7 @@ export const LoginModule = {
             });
         }
 
-        // --- LÓGICA DE LOGIN ---
+        // --- LÓGICA DE LOGIN (Mantiene la alerta inteligente Azul/Roja) ---
         if (loginForm) {
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -147,7 +147,6 @@ export const LoginModule = {
                     window.location.hash = '#/dashboard';
 
                 } catch (error) {
-                    // --- AQUÍ ESTÁ EL CAMBIO IMPORTANTE ---
                     // Detectamos si el error es por cuenta pendiente
                     if (error.message.includes("revisión") || error.message.includes("aprobación")) {
                         Swal.fire({
@@ -172,7 +171,7 @@ export const LoginModule = {
             });
         }
 
-        // --- LÓGICA DE REGISTRO ---
+        // --- LÓGICA DE REGISTRO (RESTAURADA CON TU WHATSAPP) ---
         if (registerForm) {
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -187,37 +186,37 @@ export const LoginModule = {
                     const phone = document.getElementById('regPhone').value;
                     const role = document.getElementById('regRole').value;
                     
-                    // Registramos (esto lo dejará PENDIENTE)
+                    // 1. Registramos (y se crea como PENDIENTE)
                     await AuthService.register(email, pass, name, phone, role);
 
-                    // Preparamos WhatsApp para el Admin
-                    const adminPhone = "59160000000"; // <--- PON AQUÍ TU NÚMERO
-                    const text = `Hola Diego, soy *${name}*.%0A%0AHe enviado una solicitud de registro al CRM.%0A📧 Correo: ${email}%0A📱 Celular: ${phone}%0A💼 Cargo: ${role}%0A%0APor favor, aprueba mi acceso.`;
+                    // 2. Configuración exacta del WhatsApp al 63212806
+                    const adminPhone = "59163212806"; 
+                    const text = `Hola Admin, soy *${name}*.%0A%0AHe solicitado registro en el CRM.%0A📧 ${email}%0A💼 ${role}%0A%0A¿Podrías aprobar mi acceso?`;
                     const waLink = `https://wa.me/${adminPhone}?text=${text}`;
 
-                    // Aviso de éxito y redirección a WhatsApp
+                    // 3. Alerta con los DOS botones (Verde WhatsApp y Cancelar)
                     await Swal.fire({
                         title: '¡Solicitud Enviada!',
-                        html: `Tu cuenta ha sido creada y está <b>EN REVISIÓN</b>.<br>No podrás entrar hasta que el administrador la apruebe.`,
+                        html: `Tu cuenta ha sido creada y está <b>EN REVISIÓN</b>.<br>Debes notificar al administrador para que te active.`,
                         icon: 'success',
                         showCancelButton: true,
-                        confirmButtonColor: '#25D366',
+                        confirmButtonColor: '#25D366', // Verde WhatsApp
                         cancelButtonColor: '#64748B',
-                        confirmButtonText: '<i class="fab fa-whatsapp"></i> Avisar al Admin',
-                        cancelButtonText: 'Entendido'
+                        confirmButtonText: '<i class="fab fa-whatsapp"></i> Notificar al Admin',
+                        cancelButtonText: 'Entendido, esperar'
                     }).then((result) => {
                         if (result.isConfirmed) {
                             window.open(waLink, '_blank');
                         }
                     });
 
-                    // Volvemos al tab de login
+                    // Volver al login visualmente
                     tabLogin.click();
-                    btn.innerText = 'Enviar Solicitud';
-                    btn.disabled = false;
-
+                    
                 } catch (error) {
                     Swal.fire({ icon: 'error', title: 'Error', text: error.message });
+                } finally {
+                    // Esto asegura que el botón se reactive siempre, funcione o falle
                     btn.innerText = 'Enviar Solicitud';
                     btn.disabled = false;
                 }
