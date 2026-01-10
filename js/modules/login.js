@@ -35,7 +35,7 @@ export const LoginModule = {
                 <div class="auth-card">
                     <div class="auth-tabs">
                         <button class="tab-btn active" id="tabLogin">Ingresar</button>
-                        <button class="tab-btn" id="tabRegister">Registrarse</button>
+                        <button class="tab-btn" id="tabRegister">Solicitar Acceso</button>
                     </div>
 
                     <div class="auth-content">
@@ -61,7 +61,7 @@ export const LoginModule = {
                         </form>
 
                         <form id="registerForm" class="hidden">
-                            <h2 style="margin:0 0 15px 0; color:#1E293B;">Crear Cuenta</h2>
+                            <h2 style="margin:0 0 15px 0; color:#1E293B;">Solicitud de Registro</h2>
                             <div class="input-group">
                                 <label class="input-label">Nombre Completo</label>
                                 <input type="text" id="regName" class="auth-input" required placeholder="Tu Nombre">
@@ -85,7 +85,7 @@ export const LoginModule = {
                                     <button type="button" class="toggle-pass" onclick="toggleVisibility('regPass')">👁️</button>
                                 </div>
                             </div>
-                            <button type="submit" class="btn-auth">Registrarse</button>
+                            <button type="submit" class="btn-auth" style="background-color:#10B981;">Enviar Solicitud</button>
                         </form>
                     </div>
                 </div>
@@ -99,6 +99,7 @@ export const LoginModule = {
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
 
+        // Función global para ver contraseña
         window.toggleVisibility = (id) => {
             const input = document.getElementById(id);
             input.type = input.type === 'password' ? 'text' : 'password';
@@ -120,12 +121,12 @@ export const LoginModule = {
             });
         }
 
-        // --- LÓGICA DE LOGIN CON ALERTAS PRO ---
+        // --- LÓGICA DE LOGIN ---
         if (loginForm) {
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const btn = loginForm.querySelector('button');
-                btn.innerText = 'Entrando...';
+                btn.innerText = 'Verificando...';
                 btn.disabled = true;
 
                 try {
@@ -134,44 +135,49 @@ export const LoginModule = {
                     
                     await AuthService.login(email, pass);
                     
-                    // Alerta de éxito sutil
+                    // Si login exitoso (es aprobado)
                     const Toast = Swal.mixin({
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        timerProgressBar: true,
-                        didOpen: (toast) => {
+                        toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
+                        timerProgressBar: true, didOpen: (toast) => {
                             toast.addEventListener('mouseenter', Swal.stopTimer)
                             toast.addEventListener('mouseleave', Swal.resumeTimer)
                         }
                     });
-                    
-                    Toast.fire({
-                        icon: 'success',
-                        title: '¡Bienvenido de nuevo!'
-                    });
-
+                    Toast.fire({ icon: 'success', title: '¡Bienvenido de nuevo!' });
                     window.location.hash = '#/dashboard';
+
                 } catch (error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error de Acceso',
-                        text: 'El correo o la contraseña son incorrectos.',
-                        confirmButtonColor: '#2563EB'
-                    });
+                    // --- AQUÍ ESTÁ EL CAMBIO IMPORTANTE ---
+                    // Detectamos si el error es por cuenta pendiente
+                    if (error.message.includes("revisión") || error.message.includes("aprobación")) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Cuenta en Revisión',
+                            text: 'Tu solicitud ha sido recibida pero aún no ha sido aprobada por el administrador.',
+                            confirmButtonColor: '#2563EB'
+                        });
+                    } else {
+                        // Error real (contraseña mal)
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error de Acceso',
+                            text: 'El correo o la contraseña son incorrectos.',
+                            confirmButtonColor: '#EF4444'
+                        });
+                    }
+                    
                     btn.innerText = 'Ingresar';
                     btn.disabled = false;
                 }
             });
         }
 
-        // --- LÓGICA DE REGISTRO CON WHATSAPP ---
+        // --- LÓGICA DE REGISTRO ---
         if (registerForm) {
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const btn = registerForm.querySelector('button');
-                btn.innerText = 'Registrando...';
+                btn.innerText = 'Enviando...';
                 btn.disabled = true;
 
                 try {
@@ -181,46 +187,44 @@ export const LoginModule = {
                     const phone = document.getElementById('regPhone').value;
                     const role = document.getElementById('regRole').value;
                     
-                    // 1. Crear usuario en Firebase
-                    await AuthService.register(email, pass, name);
+                    // Registramos (esto lo dejará PENDIENTE)
+                    await AuthService.register(email, pass, name, phone, role);
 
-                    // 2. Preparar mensaje de WhatsApp para TI
-                    const adminPhone = "59160000000"; // <--- ¡CAMBIA ESTO POR TU NÚMERO REAL!
-                    const text = `Hola Diego, soy *${name}*.%0A%0AAcabo de registrarme en Magic CRM.%0A📧 Correo: ${email}%0A📱 Celular: ${phone}%0A💼 Cargo: ${role}%0A%0ASolicito activación. Gracias.`;
+                    // Preparamos WhatsApp para el Admin
+                    const adminPhone = "59160000000"; // <--- PON AQUÍ TU NÚMERO
+                    const text = `Hola Diego, soy *${name}*.%0A%0AHe enviado una solicitud de registro al CRM.%0A📧 Correo: ${email}%0A📱 Celular: ${phone}%0A💼 Cargo: ${role}%0A%0APor favor, aprueba mi acceso.`;
                     const waLink = `https://wa.me/${adminPhone}?text=${text}`;
 
-                    // 3. Alerta Pro con botón de WhatsApp
+                    // Aviso de éxito y redirección a WhatsApp
                     await Swal.fire({
-                        title: '¡Cuenta Creada!',
-                        text: "Para activar tu cuenta, notifica al administrador por WhatsApp.",
+                        title: '¡Solicitud Enviada!',
+                        html: `Tu cuenta ha sido creada y está <b>EN REVISIÓN</b>.<br>No podrás entrar hasta que el administrador la apruebe.`,
                         icon: 'success',
                         showCancelButton: true,
                         confirmButtonColor: '#25D366',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: '<i class="fab fa-whatsapp"></i> Notificar a Diego',
-                        cancelButtonText: 'Ir al Dashboard'
+                        cancelButtonColor: '#64748B',
+                        confirmButtonText: '<i class="fab fa-whatsapp"></i> Avisar al Admin',
+                        cancelButtonText: 'Entendido'
                     }).then((result) => {
                         if (result.isConfirmed) {
                             window.open(waLink, '_blank');
                         }
                     });
 
-                    window.location.hash = '#/dashboard';
+                    // Volvemos al tab de login
+                    tabLogin.click();
+                    btn.innerText = 'Enviar Solicitud';
+                    btn.disabled = false;
 
                 } catch (error) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al registrar',
-                        text: error.message,
-                        confirmButtonColor: '#2563EB'
-                    });
-                    btn.innerText = 'Registrarse';
+                    Swal.fire({ icon: 'error', title: 'Error', text: error.message });
+                    btn.innerText = 'Enviar Solicitud';
                     btn.disabled = false;
                 }
             });
         }
 
-        // Recuperar Contraseña Pro
+        // Recuperar Contraseña
         const btnForgot = document.getElementById('btnForgot');
         if(btnForgot) {
             btnForgot.addEventListener('click', async () => {
@@ -228,10 +232,8 @@ export const LoginModule = {
                     title: 'Recuperar Contraseña',
                     input: 'email',
                     inputLabel: 'Ingresa tu correo registrado',
-                    inputPlaceholder: 'tu@correo.com',
                     showCancelButton: true,
-                    confirmButtonColor: '#2563EB',
-                    confirmButtonText: 'Enviar enlace'
+                    confirmButtonColor: '#2563EB'
                 });
 
                 if (email) {
