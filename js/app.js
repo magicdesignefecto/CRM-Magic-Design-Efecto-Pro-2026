@@ -1,9 +1,13 @@
 import { AuthService } from './services/auth.service.js';
 import { Layout } from './components/Layout.js';
 
+// --- IMPORTAMOS LA BASE DE DATOS PARA VERIFICAR EL ESTADO ---
+import { db } from './core/firebase-config.js'; 
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 // Módulos
 import { LoginModule } from './modules/login.js';
-import { DashboardModule } from './modules/dashboard.js'; // Asegúrate que se llame así en el export
+import { DashboardModule } from './modules/dashboard.js';
 import { LeadsModule } from './modules/leads.js';
 import { ClientsModule } from './modules/clients.js';
 import { PipelineModule } from './modules/pipeline.js';
@@ -33,19 +37,11 @@ const routes = {
 const router = async () => {
     const contentDiv = document.getElementById('app');
     
-    // 1. Detectar Ruta limpia (para GitHub Pages o Local)
-    // Tomamos solo la parte final después del último /
     let path = window.location.hash.replace('#', '') || '/';
-    
-    // Si la ruta está vacía, vamos al dashboard
     if (path === '') path = '/';
 
     console.log("📍 Navegando a:", path);
 
-    // 2. Verificar Sesión con Firebase (AuthService ya tiene el estado guardado)
-    // Nota: La redirección inicial la manejamos en el evento onAuthStateChanged abajo
-    
-    // 3. Selección del Módulo
     // Si estamos en login/register, renderizamos LoginModule directamente
     if (path === '/login' || path === '/register') {
         contentDiv.innerHTML = await LoginModule.render();
@@ -56,15 +52,12 @@ const router = async () => {
     // Si no es login, buscamos el módulo correspondiente
     const module = routes[path] || DashboardModule;
 
-    // 4. Renderizado Seguro (Layout + Módulo)
     try {
         const moduleContent = await module.render();
         const pageTitle = path.replace('/', '').toUpperCase() || 'DASHBOARD';
         
-        // Aquí envolvemos el contenido en el Layout (Sidebar + Header)
         contentDiv.innerHTML = Layout.render(moduleContent, pageTitle);
         
-        // Inicializamos interactividad
         if (Layout.init) await Layout.init();
         if (module.init) await module.init();
 
@@ -79,24 +72,58 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("🚀 Iniciando Magic CRM...");
 
     // Escuchamos cambios en la autenticación de Firebase
-    AuthService.onAuthStateChanged((user) => {
+    AuthService.onAuthStateChanged(async (user) => {
         if (user) {
             console.log("✅ Usuario detectado:", user.email);
-            // Si el usuario está en login, lo mandamos al dashboard
+
+            // --- 🔒 SEGURIDAD EXTRA: VERIFICAR SI ESTÁ APROBADO EN DB ---
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    
+                    // SI ESTÁ PENDIENTE, LO SACAMOS AUNQUE TENGA CONTRASEÑA
+                    if (userData.status === 'pending') {
+                        console.warn("⛔ Usuario PENDIENTE intentando entrar. Bloqueando...");
+                        await AuthService.logout();
+                        
+                        // Usamos Swal si existe, si no alert normal
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'Cuenta en Revisión',
+                                text: 'Tu solicitud ha sido recibida pero aún no ha sido aprobada por el administrador.',
+                                confirmButtonColor: '#2563EB'
+                            });
+                        } else {
+                            alert("Cuenta en revisión. Espera aprobación.");
+                        }
+                        
+                        window.location.hash = '#/login';
+                        return; // ¡DETENER TODO AQUÍ!
+                    }
+                }
+            } catch (error) {
+                console.error("Error verificando estado:", error);
+            }
+            // ------------------------------------------------------------
+
+            // Si pasa el filtro de seguridad, lo dejamos entrar
             if (window.location.hash === '#/login' || window.location.hash === '' || !window.location.hash) {
                 window.location.hash = '#/dashboard';
             }
-            // Ejecutamos el router
             router();
+            
         } else {
             console.log("⚠️ No hay sesión, redirigiendo a Login");
-            // Si no hay usuario, forzamos la ruta de login
-            window.location.hash = '#/login';
+            if (window.location.hash !== '#/register') { // Permitir estar en registro
+                 window.location.hash = '#/login';
+            }
             router();
         }
     });
 
-    // Escuchar cambios de navegación (Atrás/Adelante)
     window.addEventListener('popstate', router);
     window.addEventListener('hashchange', router);
 });
